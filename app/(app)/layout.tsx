@@ -1,0 +1,35 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getDict } from "@/lib/i18n";
+import { I18nProvider } from "@/components/providers";
+import { BottomNav } from "@/components/bottom-nav";
+import type { Language } from "@/lib/types";
+
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("language")
+    .eq("id", user.id)
+    .single();
+
+  const lang = (profile?.language ?? "en") as Language;
+  const dict = getDict(lang);
+
+  return (
+    <I18nProvider dict={dict} lang={lang}>
+      <div className="mx-auto w-full max-w-md flex-1 pb-24">{children}</div>
+      <BottomNav />
+    </I18nProvider>
+  );
+}

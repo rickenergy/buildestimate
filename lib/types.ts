@@ -1,0 +1,124 @@
+export type Language = "en" | "pt" | "es";
+
+export type ClientStatus =
+  | "lead"
+  | "estimate_sent"
+  | "follow_up"
+  | "approved"
+  | "lost";
+
+export type EstimateStatus = "draft" | "ready" | "sent" | "approved" | "lost";
+
+export type QualityTier = "basic" | "standard" | "premium";
+
+export type ItemKind = "material" | "labor" | "demo" | "disposal" | "other";
+
+export type MarginScore = "healthy" | "medium" | "low";
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  company_name: string;
+  logo_url: string | null;
+  phone: string | null;
+  language: Language;
+  overhead_pct: number;
+  profit_pct: number;
+  tax_pct: number;
+  min_margin_pct: number;
+  hourly_rate: number;
+}
+
+export interface ClientRow {
+  id: string;
+  user_id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  status: ClientStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Estimate {
+  id: string;
+  user_id: string;
+  client_id: string | null;
+  title: string;
+  trade: string;
+  status: EstimateStatus;
+  area_sqft: number | null;
+  quality_tier: QualityTier;
+  conditions: Record<string, unknown>;
+  location: string | null;
+  start_timeframe: string | null;
+  material_cost: number;
+  labor_cost: number;
+  demo_cost: number;
+  overhead_pct: number;
+  profit_pct: number;
+  tax_pct: number;
+  total: number;
+  margin_score: MarginScore | null;
+  crew_size: number | null;
+  est_days: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EstimateItem {
+  id: string;
+  estimate_id: string;
+  user_id: string;
+  kind: ItemKind;
+  description: string;
+  qty: number;
+  unit: string;
+  unit_cost: number;
+  total: number;
+  is_estimated_price: boolean;
+  sort_order: number;
+}
+
+export interface PriceItem {
+  id: string;
+  user_id?: string;
+  trade: string;
+  name: string;
+  unit: string;
+  material_cost: number;
+  labor_cost: number;
+  notes: string | null;
+}
+
+export interface Proposal {
+  id: string;
+  estimate_id: string;
+  user_id: string;
+  token: string;
+  scope: string;
+  exclusions: string;
+  terms: string;
+  valid_until: string | null;
+  status: "draft" | "sent" | "viewed" | "accepted" | "declined";
+  client_name_signed: string | null;
+  viewed_at: string | null;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export const TRADES = [
+  "flooring",
+  "painting",
+  "drywall",
+  "tile",
+  "roofing",
+  "remodeling",
+  "landscaping",
+  "cleaning",
+  "handyman",
+] as const;
+
+export type Trade = (typeof TRADES)[number];
