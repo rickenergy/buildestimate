@@ -161,3 +161,46 @@ describe("trim takeoff (EST 13-7)", () => {
     expect(result.items.some((i) => i.description.startsWith("Drip edge"))).toBe(true);
   });
 });
+
+describe("handyman takeoff (flat-rate tasks)", () => {
+  it("prices each task by qty and marks room in label", () => {
+    const result = computeTakeoff(
+      {
+        trade: "handyman",
+        areas: [{ sqft: 100 }],
+        tasks: [
+          { key: "faucet", label: "Faucet replacement — Kitchen", qty: 1 },
+          { key: "tv_mount", label: "TV wall mount — Living room", qty: 2 },
+        ],
+      },
+      []
+    );
+    const faucet = result.items.filter((i) => i.description.includes("Faucet"));
+    expect(faucet.length).toBeGreaterThan(0);
+    const tv = result.items.find((i) => i.description.includes("TV") && i.kind === "labor");
+    expect(tv?.qty).toBe(2);
+  });
+});
+
+describe("siding takeoff", () => {
+  it("wall area from perimeter × height with house wrap", () => {
+    const result = computeTakeoff(
+      { trade: "siding", areas: [{ length_ft: 40, width_ft: 30 }], wall_height_ft: 9 },
+      []
+    );
+    // perimeter 140 × 9 × 1.08 gable ≈ 1361 sqft
+    expect(result.items.some((i) => i.description.startsWith("House wrap"))).toBe(true);
+    const siding = result.items.find((i) => i.description.startsWith("Siding") && i.kind === "material");
+    // perimeter 140 × 9 ft × 1.08 gable × 1.12 waste ≈ 1525 sqft
+    expect(siding && siding.qty).toBeGreaterThan(1300);
+  });
+});
+
+describe("concrete takeoff", () => {
+  it("slab + gravel + mesh from sqft", () => {
+    const result = computeTakeoff({ trade: "concrete", areas: [{ sqft: 400 }] }, []);
+    expect(result.items.some((i) => i.description.includes("Gravel"))).toBe(true);
+    expect(result.items.some((i) => i.description.includes("slab"))).toBe(true);
+    expect(result.items.some((i) => i.description.includes("mesh"))).toBe(true);
+  });
+});

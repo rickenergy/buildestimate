@@ -7,6 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDict } from "@/components/providers";
 import { EstimatePreview, type EstimatePayload } from "@/components/estimate-preview";
 import { ProjectAnalysisCard } from "@/components/project-analysis";
@@ -18,6 +25,7 @@ import {
   ROOM_OPENINGS,
   WORK_KEYS,
   WHOLE_PROPERTY_WORK,
+  HANDYMAN_TASKS,
   defaultRooms,
   roomPreset,
   workToTrade,
@@ -39,10 +47,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STEPS = 6; // kind → property → rooms → areas → works → details/review
+type StepKey = "kind" | "property" | "rooms" | "areas" | "works" | "handyman" | "review";
+
+interface HandyState {
+  qty: number;
+  roomId: string; // "" = whole property
+}
 
 export function SmartWizard() {
   const t = useDict();
@@ -53,6 +67,7 @@ export function SmartWizard() {
   const [property, setProperty] = useState<PropertyType>("single_house");
   const [rooms, setRooms] = useState<WizardRoom[]>(() => defaultRooms("single_house"));
   const [works, setWorks] = useState<WorkKey[]>([]);
+  const [handy, setHandy] = useState<Record<string, HandyState>>({});
   const [wallHeight, setWallHeight] = useState(8);
   const [tier, setTier] = useState<QualityTier>("standard");
   const [demo, setDemo] = useState(false);
@@ -60,6 +75,20 @@ export function SmartWizard() {
   const [disposal, setDisposal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [result, setResult] = useState<ProjectComputeResult | null>(null);
+
+  const flow: StepKey[] = useMemo(
+    () => [
+      "kind",
+      "property",
+      "rooms",
+      "areas",
+      "works",
+      ...(works.includes("handyman") ? (["handyman"] as StepKey[]) : []),
+      "review",
+    ],
+    [works]
+  );
+  const current = flow[Math.min(step, flow.length - 1)];
 
   const selected = rooms.filter((r) => r.selected);
   const totalSqft = Math.ceil(selected.reduce((s, r) => s + r.length * r.width, 0));
@@ -69,6 +98,12 @@ export function SmartWizard() {
     for (const r of rooms) counts.set(r.key, (counts.get(r.key) ?? 0) + 1);
     return counts;
   }, [rooms]);
+
+  const roomLabel = (r: WizardRoom) => {
+    const same = selected.filter((x) => x.key === r.key);
+    const idx = same.findIndex((x) => x.id === r.id);
+    return same.length > 1 ? `${t.wizard.rooms[r.key]} ${idx + 1}` : t.wizard.rooms[r.key];
+  };
 
   function pickProperty(p: PropertyType) {
     setProperty(p);
@@ -94,10 +129,18 @@ export function SmartWizard() {
     setWorks((prev) => (prev.includes(w) ? prev.filter((x) => x !== w) : [...prev, w]));
   }
 
+  function bumpTask(key: string, delta: number) {
+    setHandy((prev) => {
+      const cur = prev[key] ?? { qty: 0, roomId: "" };
+      const qty = Math.max(0, cur.qty + delta);
+      return { ...prev, [key]: { ...cur, qty } };
+    });
+  }
+
   const canNext =
-    step === 2 ? rooms.length > 0
-    : step === 3 ? selected.length > 0
-    : step === 4 ? works.length > 0
+    current === "rooms" ? rooms.length > 0
+    : current === "areas" ? selected.length > 0
+    : current === "works" ? works.length > 0
     : true;
 
   function workLabel(w: WorkKey) {
@@ -115,6 +158,16 @@ export function SmartWizard() {
     }));
     const footprintSqft = Math.ceil(rooms.reduce((s, r) => s + r.length * r.width, 0));
 
+    const handymanTasks = Object.entries(handy)
+      .filter(([, v]) => v.qty > 0)
+      .map(([key, v]) => {
+        const room = selected.find((r) => r.id === v.roomId);
+        const label = room
+          ? `${t.handyman[key] ?? key} — ${t.wizard.rooms[room.key]}`
+          : (t.handyman[key] ?? key);
+        return { key, label, qty: v.qty };
+      });
+
     const inputs: TakeoffInput[] = works.map((w) => {
       const { trade, material_name } = workToTrade(w);
       const whole = WHOLE_PROPERTY_WORK.includes(w);
@@ -128,6 +181,7 @@ export function SmartWizard() {
         conditions,
         material_name: material_name ?? (trade === "framing" ? "interior partition" : undefined),
         quality_tier: tier,
+        tasks: trade === "handyman" ? handymanTasks : undefined,
       };
     });
 
@@ -140,6 +194,19 @@ export function SmartWizard() {
           quality_tier: tier,
           conditions,
           client_name: clientName.trim() || undefined,
+          project_meta: {
+            kind,
+            property,
+            works,
+            rooms: rooms.map((r) => ({
+              key: r.key,
+              length: r.length,
+              width: r.width,
+              selected: r.selected,
+            })),
+            handyman_tasks: handymanTasks,
+            wall_height_ft: wallHeight,
+          },
         });
         setResult(res);
       } catch {
@@ -169,7 +236,7 @@ export function SmartWizard() {
     <div className="space-y-4">
       {/* progress dots */}
       <div className="flex items-center justify-center gap-1.5">
-        {Array.from({ length: STEPS }).map((_, i) => (
+        {flow.map((_, i) => (
           <span
             key={i}
             className={cn(
@@ -180,7 +247,7 @@ export function SmartWizard() {
         ))}
       </div>
 
-      {step === 0 && (
+      {current === "kind" && (
         <StepShell title={t.wizard.kindTitle}>
           <div className="grid grid-cols-2 gap-3">
             <BigCard
@@ -209,9 +276,9 @@ export function SmartWizard() {
         </StepShell>
       )}
 
-      {step === 1 && (
+      {current === "property" && (
         <StepShell title={t.wizard.propertyTitle}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
             {PROPERTY_TYPES[kind].map((p) => (
               <button
                 key={p}
@@ -234,9 +301,9 @@ export function SmartWizard() {
         </StepShell>
       )}
 
-      {step === 2 && (
+      {current === "rooms" && (
         <StepShell title={t.wizard.roomsTitle} hint={t.wizard.roomsHint}>
-          <div className="grid gap-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {ROOM_PRESETS.filter(
               (r) => kind === "commercial" || r.key !== "open_area"
             ).map(({ key }) => {
@@ -281,7 +348,7 @@ export function SmartWizard() {
         </StepShell>
       )}
 
-      {step === 3 && (
+      {current === "areas" && (
         <StepShell title={t.wizard.areasTitle} hint={t.wizard.areasHint}>
           <div className="mb-2 flex gap-2">
             <Button
@@ -304,7 +371,7 @@ export function SmartWizard() {
               {totalSqft} sqft
             </span>
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {rooms.map((room, i) => (
               <div
                 key={room.id}
@@ -358,9 +425,9 @@ export function SmartWizard() {
         </StepShell>
       )}
 
-      {step === 4 && (
+      {current === "works" && (
         <StepShell title={t.wizard.worksTitle} hint={t.wizard.worksHint}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
             {WORK_KEYS.map((w) => (
               <button
                 key={w}
@@ -381,7 +448,82 @@ export function SmartWizard() {
         </StepShell>
       )}
 
-      {step === 5 && (
+      {current === "handyman" && (
+        <StepShell title={t.wizard.handymanTitle} hint={t.wizard.handymanHint}>
+          <div className="grid gap-2 md:grid-cols-2">
+            {HANDYMAN_TASKS.map(({ key }) => {
+              const sel = handy[key] ?? { qty: 0, roomId: "" };
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "rounded-xl border px-3 py-2 transition-colors",
+                    sel.qty > 0 ? "border-primary/50 bg-primary/5" : "bg-card"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium">
+                      <Wrench className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                      <span className="truncate">{t.handyman[key] ?? key}</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7"
+                        disabled={sel.qty === 0}
+                        onClick={() => bumpTask(key, -1)}
+                        aria-label="−"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="w-5 text-center text-sm font-bold tabular-nums">
+                        {sel.qty}
+                      </span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7"
+                        onClick={() => bumpTask(key, 1)}
+                        aria-label="+"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  {sel.qty > 0 && (
+                    <Select
+                      value={sel.roomId || "__all__"}
+                      onValueChange={(v) =>
+                        setHandy((prev) => ({
+                          ...prev,
+                          [key]: { ...sel, roomId: v === "__all__" ? "" : v },
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="mt-2 h-8 w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">{t.wizard.wholeProperty}</SelectItem>
+                        {selected.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {roomLabel(r)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </StepShell>
+      )}
+
+      {current === "review" && (
         <StepShell title={t.wizard.reviewTitle}>
           <Card>
             <CardContent className="grid gap-4 p-4">
@@ -398,41 +540,43 @@ export function SmartWizard() {
                 </Chip>
               </div>
 
-              <div className="grid gap-1.5">
-                <Label>{t.form.wallHeight}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[8, 9, 10].map((h) => (
-                    <Button
-                      key={h}
-                      type="button"
-                      size="sm"
-                      variant={wallHeight === h ? "default" : "outline"}
-                      onClick={() => setWallHeight(h)}
-                    >
-                      {h} ft
-                    </Button>
-                  ))}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label>{t.form.wallHeight}</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[8, 9, 10].map((h) => (
+                      <Button
+                        key={h}
+                        type="button"
+                        size="sm"
+                        variant={wallHeight === h ? "default" : "outline"}
+                        onClick={() => setWallHeight(h)}
+                      >
+                        {h} ft
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid gap-1.5">
-                <Label>{t.form.tier}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["basic", "standard", "premium"] as QualityTier[]).map((qt) => (
-                    <Button
-                      key={qt}
-                      type="button"
-                      size="sm"
-                      variant={tier === qt ? "default" : "outline"}
-                      onClick={() => setTier(qt)}
-                    >
-                      {qt === "basic"
-                        ? t.form.tierBasic
-                        : qt === "standard"
-                          ? t.form.tierStandard
-                          : t.form.tierPremium}
-                    </Button>
-                  ))}
+                <div className="grid gap-1.5">
+                  <Label>{t.form.tier}</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["basic", "standard", "premium"] as QualityTier[]).map((qt) => (
+                      <Button
+                        key={qt}
+                        type="button"
+                        size="sm"
+                        variant={tier === qt ? "default" : "outline"}
+                        onClick={() => setTier(qt)}
+                      >
+                        {qt === "basic"
+                          ? t.form.tierBasic
+                          : qt === "standard"
+                            ? t.form.tierStandard
+                            : t.form.tierPremium}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -485,7 +629,7 @@ export function SmartWizard() {
           <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>
             <ChevronLeft className="mr-1 h-4 w-4" /> {t.wizard.back}
           </Button>
-          {step < STEPS - 1 && (
+          {current !== "review" && (
             <Button type="button" className="flex-1" disabled={!canNext} onClick={() => setStep(step + 1)}>
               {t.wizard.next} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -508,7 +652,7 @@ function StepShell({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-base font-bold">{title}</h2>
+        <h2 className="font-heading text-base font-bold">{title}</h2>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       </div>
       {children}

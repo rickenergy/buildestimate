@@ -32,6 +32,8 @@ export interface TakeoffInput {
   start_timeframe?: string;
   client_name?: string;
   notes?: string;
+  /** Handyman flat-rate tasks: key matches the price book, label is display-ready. */
+  tasks?: { key: string; label: string; qty: number }[];
 }
 
 export interface PriceEntry {

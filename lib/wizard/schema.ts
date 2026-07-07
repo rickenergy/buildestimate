@@ -167,3 +167,38 @@ export function workToTrade(work: WorkKey): { trade: Trade; material_name?: stri
   if (work === "metal_trim") return { trade: "trim", material_name: "metal aluminum fascia soffit" };
   return { trade: work };
 }
+
+/**
+ * Handyman task catalogue — flat-rate small jobs priced each,
+ * standard US handyman price-book practice. Keys match i18n + price book.
+ */
+export interface HandymanTaskDef {
+  key: string;
+  keywords: string[]; // price-book lookup
+  material: number; // fallback $ each
+  labor: number;
+}
+
+export const HANDYMAN_TASKS: HandymanTaskDef[] = [
+  { key: "door_repair", keywords: ["door", "repair"], material: 10, labor: 45 },
+  { key: "door_install", keywords: ["door", "install"], material: 120, labor: 90 },
+  { key: "faucet", keywords: ["faucet"], material: 85, labor: 75 },
+  { key: "toilet", keywords: ["toilet"], material: 180, labor: 120 },
+  { key: "caulking", keywords: ["caulk"], material: 8, labor: 60 },
+  { key: "drywall_patch", keywords: ["drywall", "patch"], material: 15, labor: 85 },
+  { key: "light_fixture", keywords: ["light", "fixture"], material: 60, labor: 65 },
+  { key: "ceiling_fan", keywords: ["ceiling", "fan"], material: 110, labor: 95 },
+  { key: "tv_mount", keywords: ["tv", "mount"], material: 25, labor: 80 },
+  { key: "shelving", keywords: ["shelf"], material: 45, labor: 70 },
+  { key: "smoke_detector", keywords: ["smoke"], material: 25, labor: 30 },
+  { key: "weatherstripping", keywords: ["weatherstrip"], material: 20, labor: 50 },
+  { key: "baseboard_repair", keywords: ["baseboard", "repair"], material: 10, labor: 60 },
+  { key: "pressure_wash", keywords: ["pressure", "wash"], material: 0, labor: 180 },
+  { key: "gutter_clean", keywords: ["gutter", "clean"], material: 0, labor: 150 },
+];
+
+export interface HandymanSelection {
+  taskKey: string;
+  roomId: string | null; // null = whole property / exterior
+  qty: number;
+}

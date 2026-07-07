@@ -16,6 +16,7 @@ interface SaveEstimatePayload {
     location?: string;
     start_timeframe?: string;
     client_name?: string;
+    project_meta?: Record<string, unknown>;
   };
   takeoff: TakeoffResult;
   totals: EstimateTotals;
@@ -77,6 +78,7 @@ export async function computeProject(
     conditions?: Record<string, unknown>;
     client_name?: string;
     location?: string;
+    project_meta?: Record<string, unknown>;
   }
 ): Promise<ProjectComputeResult> {
   const supabase = await createClient();
@@ -134,6 +136,7 @@ export async function computeProject(
         conditions: meta.conditions ?? {},
         location: meta.location,
         client_name: meta.client_name,
+        project_meta: meta.project_meta,
       },
       takeoff: aggregated,
       totals,
@@ -202,6 +205,7 @@ export async function saveEstimate(payload: SaveEstimatePayload) {
       margin_score: totals.margin_score,
       crew_size: takeoff.crew_size,
       est_days: takeoff.est_days,
+      project_meta: input.project_meta ?? null,
     })
     .select("id")
     .single();

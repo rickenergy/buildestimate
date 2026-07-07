@@ -28,7 +28,7 @@ export default async function AppLayout({
 
   return (
     <I18nProvider dict={dict} lang={lang}>
-      <div className="mx-auto w-full max-w-md flex-1 pb-24">{children}</div>
+      <div className="mx-auto w-full max-w-md flex-1 pb-24 md:max-w-2xl">{children}</div>
       <BottomNav />
     </I18nProvider>
   );

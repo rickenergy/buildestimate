@@ -122,3 +122,98 @@ export function buildGeneric(ctx: BuildCtx, trade: string) {
     ctx.push("disposal", "Debris disposal", Math.max(1, Math.ceil(sqft / 600)), "load", 150, true);
   }
 }
+
+/**
+ * Siding takeoff: wall area = perimeter × height (gable allowance ~8%),
+ * house wrap under siding, 12% waste. EST wall-sheathing method (Ex. 13-17)
+ * applied to cladding; corners/J-channel folded into lf trim line.
+ */
+export function buildSiding(ctx: BuildCtx) {
+  const { input, perimeter, waste, tierMult } = ctx;
+  const height = input.wall_height_ft ?? 9;
+  const hasRoomDims = input.areas.some((a) => a.length_ft && a.width_ft);
+  const wallSqft = Math.ceil((hasRoomDims ? perimeter * height : ctx.sqft) * 1.08);
+  const sidingSqft = withWaste(wallSqft, waste);
+
+  if (input.conditions?.demo) {
+    const tearOff = ctx.price("siding", ["demo"], {
+      name: "Siding tear-off",
+      unit: "sqft",
+      material: 0,
+      labor: 0.9,
+    });
+    ctx.addLine(tearOff, "Tear-off existing siding", wallSqft, { kindLabor: "demo" });
+  }
+
+  const wrap = ctx.price("siding", ["wrap"], {
+    name: "House wrap",
+    unit: "sqft",
+    material: 0.25,
+    labor: 0.3,
+  });
+  ctx.addLine(wrap, "House wrap", wallSqft);
+
+  const siding =
+    (input.material_name ? ctx.priceByName("siding", input.material_name) : null) ??
+    ctx.price("siding", ["vinyl"], {
+      name: "Vinyl siding installed",
+      unit: "sqft",
+      material: 2.4,
+      labor: 3.2,
+    });
+  ctx.addLine(siding, `Siding (${sidingSqft} sqft incl. waste)`, sidingSqft, {
+    materialMult: tierMult,
+  });
+
+  const cornersLf = Math.ceil(height * Math.max(4, Math.round(perimeter / 25)));
+  ctx.push("material", "Corner posts / J-channel", cornersLf, "lf", 2.1, true);
+
+  if (input.conditions?.demo || input.conditions?.disposal) {
+    ctx.push("disposal", "Debris disposal", Math.max(1, Math.ceil(wallSqft / 800)), "load", 150, true);
+  }
+  ctx.sqft = wallSqft;
+}
+
+/**
+ * Concrete flatwork takeoff: 4" slab over 4" gravel base with wire mesh.
+ * Volume: sqft × (4/12) / 27 = cy; order full yards (8% waste factor).
+ */
+export function buildConcrete(ctx: BuildCtx) {
+  const { input, sqft, waste } = ctx;
+
+  if (input.conditions?.demo) {
+    const demo = ctx.price("concrete", ["demo"], {
+      name: "Concrete demo / removal",
+      unit: "sqft",
+      material: 0,
+      labor: 2.5,
+    });
+    ctx.addLine(demo, "Demo existing concrete", sqft, { kindLabor: "demo" });
+  }
+
+  const gravel = ctx.price("concrete", ["gravel"], {
+    name: 'Gravel base 4"',
+    unit: "sqft",
+    material: 0.8,
+    labor: 0.7,
+  });
+  ctx.addLine(gravel, "Gravel base", sqft);
+
+  const slab = ctx.price("concrete", ["slab"], {
+    name: 'Concrete slab 4" (3000 psi)',
+    unit: "sqft",
+    material: 3.5,
+    labor: 4.0,
+  });
+  const slabSqft = withWaste(sqft, waste);
+  const cy = Math.ceil((sqft * (4 / 12)) / 27 / (1 - waste));
+  ctx.addLine(slab, `Concrete slab 4" (${slabSqft} sqft ≈ ${cy} cy)`, slabSqft, {
+    materialMult: ctx.tierMult,
+  });
+
+  ctx.push("material", "Wire mesh / rebar", sqft, "sqft", 0.45, true);
+
+  if (input.conditions?.demo || input.conditions?.disposal) {
+    ctx.push("disposal", "Concrete disposal", Math.max(1, Math.ceil(sqft / 400)), "load", 250, true);
+  }
+}
