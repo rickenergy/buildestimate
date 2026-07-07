@@ -115,6 +115,10 @@ export const en = {
     handymanTitle: "Handyman tasks",
     handymanHint: "Pick each task, how many, and where in the property.",
     wholeProperty: "Whole property",
+    locationLabel: "Job location",
+    locationPlaceholder: "Address, ZIP code or city",
+    locationHint: "Prices adjust by region — e.g. Philadelphia ≠ King of Prussia.",
+    costIndex: "cost index",
     detailsTitle: "Job details",
     review: "Review",
     reviewTitle: "Review & calculate",
@@ -166,6 +170,15 @@ export const en = {
     pressure_wash: "Pressure washing",
     gutter_clean: "Gutter cleaning",
   } as Record<string, string>,
+
+  share: {
+    savePdf: "Save PDF",
+    whatsappTitle: "Send via WhatsApp",
+    phone: "Phone number",
+    phoneHint: "Any number — US numbers can skip the +1.",
+    send: "Open WhatsApp",
+    printFooter: "Estimate valid for 30 days. Prices subject to site confirmation.",
+  },
 
   finance: {
     title: "Finance",

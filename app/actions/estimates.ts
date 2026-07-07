@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { computeTakeoff, computeTotals } from "@/lib/takeoff";
+import { locationIndex, applyLocationFactor } from "@/lib/takeoff/location";
 import { loadPrices } from "@/lib/prices-server";
 import type { ComputedItem, EstimateTotals, TakeoffInput, TakeoffResult } from "@/lib/takeoff/types";
 import type { ItemKind } from "@/lib/types";
@@ -37,7 +38,8 @@ export async function computeEstimate(input: TakeoffInput) {
     .single();
 
   const prices = await loadPrices(supabase, input.trade);
-  const takeoff = computeTakeoff(input, prices);
+  const loc = locationIndex(input.location);
+  const takeoff = applyLocationFactor(computeTakeoff(input, prices), loc.factor);
   const totals = computeTotals(
     takeoff.items,
     Number(profile?.overhead_pct ?? 10),
@@ -52,7 +54,11 @@ export async function computeEstimate(input: TakeoffInput) {
       title: input.title ?? "",
       quality_tier: input.quality_tier,
       conditions: (input.conditions ?? {}) as Record<string, unknown>,
+      location: input.location,
       client_name: input.client_name,
+      project_meta: loc.label
+        ? { location_factor: loc.factor, location_label: loc.label }
+        : undefined,
     },
     takeoff,
     totals,
@@ -94,10 +100,14 @@ export async function computeProject(
     .eq("id", user.id)
     .single();
 
+  const loc = locationIndex(meta.location);
   const perTrade: { trade: string; takeoff: TakeoffResult }[] = [];
   for (const input of inputs) {
     const prices = await loadPrices(supabase, input.trade);
-    perTrade.push({ trade: input.trade, takeoff: computeTakeoff(input, prices) });
+    perTrade.push({
+      trade: input.trade,
+      takeoff: applyLocationFactor(computeTakeoff(input, prices), loc.factor),
+    });
   }
 
   const allItems = perTrade.flatMap((t) => t.takeoff.items);
@@ -136,7 +146,11 @@ export async function computeProject(
         conditions: meta.conditions ?? {},
         location: meta.location,
         client_name: meta.client_name,
-        project_meta: meta.project_meta,
+        project_meta: {
+          ...meta.project_meta,
+          location_factor: loc.factor,
+          location_label: loc.label || undefined,
+        },
       },
       takeoff: aggregated,
       totals,

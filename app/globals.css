@@ -135,3 +135,12 @@
     letter-spacing: -0.015em;
   }
 }
+@media print {
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

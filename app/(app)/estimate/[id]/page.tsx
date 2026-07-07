@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EstimateEditor } from "@/components/estimate-editor";
 import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
+import { EstimateShare } from "@/components/estimate-share";
 import type { JobTransaction } from "@/app/actions/finance";
 import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
@@ -34,6 +35,18 @@ export default async function EstimatePage({
         .order("occurred_at", { ascending: false }),
     ]);
 
+  const { data: proposal } = await supabase
+    .from("proposals")
+    .select("token")
+    .eq("estimate_id", id)
+    .maybeSingle();
+
+  const { data: company } = await supabase
+    .from("profiles")
+    .select("company_name")
+    .eq("id", user!.id)
+    .single();
+
   if (!estimate) notFound();
 
   return (
@@ -44,6 +57,15 @@ export default async function EstimatePage({
         minMarginPct={Number(profile?.min_margin_pct ?? 15)}
       />
       <div className="space-y-4 px-4 pb-8">
+        <EstimateShare
+          estimateId={id}
+          title={estimate.title}
+          total={Number(estimate.total)}
+          areaSqft={estimate.area_sqft}
+          estDays={estimate.est_days}
+          companyName={company?.company_name ?? null}
+          proposalToken={proposal?.token ?? null}
+        />
         <JobCostCard
           estimateId={id}
           contractTotal={Number(estimate.total)}

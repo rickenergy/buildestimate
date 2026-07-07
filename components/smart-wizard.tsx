@@ -19,6 +19,7 @@ import { EstimatePreview, type EstimatePayload } from "@/components/estimate-pre
 import { ProjectAnalysisCard } from "@/components/project-analysis";
 import { computeProject, type ProjectComputeResult } from "@/app/actions/estimates";
 import { analyzeProject } from "@/lib/analysis";
+import { locationIndex } from "@/lib/takeoff/location";
 import {
   PROPERTY_TYPES,
   ROOM_PRESETS,
@@ -48,6 +49,7 @@ import {
   ChevronRight,
   Sparkles,
   Wrench,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -74,7 +76,10 @@ export function SmartWizard() {
   const [prep, setPrep] = useState(false);
   const [disposal, setDisposal] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [location, setLocation] = useState("");
   const [result, setResult] = useState<ProjectComputeResult | null>(null);
+
+  const locIdx = useMemo(() => locationIndex(location), [location]);
 
   const flow: StepKey[] = useMemo(
     () => [
@@ -193,6 +198,7 @@ export function SmartWizard() {
           area_sqft: totalSqft,
           quality_tier: tier,
           conditions,
+          location: location.trim() || undefined,
           client_name: clientName.trim() || undefined,
           project_meta: {
             kind,
@@ -594,6 +600,24 @@ export function SmartWizard() {
                   {t.form.disposal}
                   <Switch checked={disposal} onCheckedChange={setDisposal} />
                 </label>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 text-primary" /> {t.wizard.locationLabel}
+                </Label>
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={t.wizard.locationPlaceholder}
+                />
+                {locIdx.label ? (
+                  <p className="text-xs font-medium text-primary">
+                    {locIdx.label} · {t.wizard.costIndex} ×{locIdx.factor.toFixed(2)}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{t.wizard.locationHint}</p>
+                )}
               </div>
 
               <div className="grid gap-1.5">

@@ -17,9 +17,10 @@ import {
 import { useDict } from "@/components/providers";
 import { EstimatePreview, type EstimatePayload } from "@/components/estimate-preview";
 import { computeEstimate } from "@/app/actions/estimates";
+import { locationIndex } from "@/lib/takeoff/location";
 import { TRADES, type QualityTier, type Trade } from "@/lib/types";
 import type { AreaInput } from "@/lib/takeoff/types";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AreaRow {
@@ -45,9 +46,11 @@ export function QuickEstimateForm() {
   const [prep, setPrep] = useState(false);
   const [disposal, setDisposal] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [location, setLocation] = useState("");
   const [result, setResult] = useState<EstimatePayload | null>(null);
 
   const showWallHeight = trade === "painting" || trade === "drywall";
+  const locIdx = locationIndex(location);
 
   function setArea(i: number, patch: Partial<AreaRow>) {
     setAreas((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)));
@@ -84,6 +87,7 @@ export function QuickEstimateForm() {
           wall_height_ft: showWallHeight ? Number(wallHeight) || 8 : undefined,
           quality_tier: tier,
           conditions: { demo, prep, disposal },
+          location: location.trim() || undefined,
           client_name: clientName.trim() || undefined,
         });
         setResult(payload);
@@ -241,6 +245,24 @@ export function QuickEstimateForm() {
                   {t.form.disposal}
                   <Switch checked={disposal} onCheckedChange={setDisposal} />
                 </label>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 text-primary" /> {t.wizard.locationLabel}
+                </Label>
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={t.wizard.locationPlaceholder}
+                />
+                {locIdx.label ? (
+                  <p className="text-xs font-medium text-primary">
+                    {locIdx.label} · {t.wizard.costIndex} ×{locIdx.factor.toFixed(2)}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{t.wizard.locationHint}</p>
+                )}
               </div>
 
               <div className="grid gap-1.5">

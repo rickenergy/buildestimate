@@ -117,6 +117,10 @@ export const es: Dict = {
     handymanTitle: "Tareas de mantenimiento",
     handymanHint: "Elige cada tarea, la cantidad y dónde en la propiedad.",
     wholeProperty: "Toda la propiedad",
+    locationLabel: "Ubicación del trabajo",
+    locationPlaceholder: "Dirección, código ZIP o ciudad",
+    locationHint: "Los precios se ajustan por región — ej: Philadelphia ≠ King of Prussia.",
+    costIndex: "índice de costo",
     detailsTitle: "Detalles del trabajo",
     review: "Revisar",
     reviewTitle: "Revisar y calcular",
@@ -167,6 +171,15 @@ export const es: Dict = {
     baseboard_repair: "Reparación de zócalo",
     pressure_wash: "Lavado a presión",
     gutter_clean: "Limpieza de canaletas",
+  },
+
+  share: {
+    savePdf: "Guardar PDF",
+    whatsappTitle: "Enviar por WhatsApp",
+    phone: "Número de teléfono",
+    phoneHint: "Cualquier número — en EE.UU. puedes omitir el +1.",
+    send: "Abrir WhatsApp",
+    printFooter: "Presupuesto válido por 30 días. Precios sujetos a confirmación en sitio.",
   },
 
   finance: {

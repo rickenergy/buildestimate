@@ -64,6 +64,8 @@ export interface Estimate {
   margin_score: MarginScore | null;
   crew_size: number | null;
   est_days: number | null;
+  project_meta: Record<string, unknown> | null;
+  market_insights: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
