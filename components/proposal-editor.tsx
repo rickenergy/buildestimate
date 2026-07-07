@@ -17,7 +17,7 @@ import {
   updateProposal,
   sendProposal,
 } from "@/app/actions/proposals";
-import { ArrowLeft, Sparkles, Send, Copy, ExternalLink, Loader2, CircleCheck } from "lucide-react";
+import { ArrowLeft, FileText, Send, Copy, ExternalLink, Loader2, CircleCheck } from "lucide-react";
 import type { Estimate, Proposal } from "@/lib/types";
 
 interface Props {
@@ -109,7 +109,7 @@ export function ProposalEditor({ estimate, proposal }: Props) {
           </>
         ) : (
           <>
-            <Sparkles className="mr-1 h-4 w-4" /> {t.proposal.generate}
+            <FileText className="mr-1 h-4 w-4" /> {t.proposal.generate}
           </>
         )}
       </Button>

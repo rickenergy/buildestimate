@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { computeTotals } from "@/lib/takeoff";
-import type { ComputedItem, EstimateTotals, TakeoffResult } from "@/lib/takeoff/types";
+import { computeTakeoff, computeTotals } from "@/lib/takeoff";
+import { loadPrices } from "@/lib/prices-server";
+import type { ComputedItem, EstimateTotals, TakeoffInput, TakeoffResult } from "@/lib/takeoff/types";
 import type { ItemKind } from "@/lib/types";
 
 interface SaveEstimatePayload {
@@ -18,6 +19,43 @@ interface SaveEstimatePayload {
   };
   takeoff: TakeoffResult;
   totals: EstimateTotals;
+}
+
+/** Deterministic takeoff from the manual form — no AI involved. */
+export async function computeEstimate(input: TakeoffInput) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("overhead_pct, profit_pct, tax_pct, min_margin_pct")
+    .eq("id", user.id)
+    .single();
+
+  const prices = await loadPrices(supabase, input.trade);
+  const takeoff = computeTakeoff(input, prices);
+  const totals = computeTotals(
+    takeoff.items,
+    Number(profile?.overhead_pct ?? 10),
+    Number(profile?.profit_pct ?? 20),
+    Number(profile?.tax_pct ?? 0),
+    Number(profile?.min_margin_pct ?? 15)
+  );
+
+  return {
+    input: {
+      trade: input.trade,
+      title: input.title ?? "",
+      quality_tier: input.quality_tier,
+      conditions: (input.conditions ?? {}) as Record<string, unknown>,
+      client_name: input.client_name,
+    },
+    takeoff,
+    totals,
+  };
 }
 
 export async function saveEstimate(payload: SaveEstimatePayload) {

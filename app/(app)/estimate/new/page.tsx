@@ -1,77 +1,96 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useChat } from "@ai-sdk/react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useDict, useLang } from "@/components/providers";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useDict } from "@/components/providers";
 import { EstimatePreview, type EstimatePayload } from "@/components/estimate-preview";
-import { Camera, Mic, MicOff, Send, Loader2, Calculator } from "lucide-react";
+import { computeEstimate } from "@/app/actions/estimates";
+import { TRADES, type QualityTier, type Trade } from "@/lib/types";
+import type { AreaInput } from "@/lib/takeoff/types";
+import { Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const SPEECH_LANGS: Record<string, string> = { en: "en-US", pt: "pt-BR", es: "es-US" };
+interface AreaRow {
+  name: string;
+  length: string;
+  width: string;
+}
+
+const EMPTY_AREA: AreaRow = { name: "", length: "", width: "" };
+const TIERS: QualityTier[] = ["basic", "standard", "premium"];
 
 export default function NewEstimatePage() {
   const t = useDict();
-  const lang = useLang();
-  const { messages, sendMessage, status } = useChat();
+  const [pending, startTransition] = useTransition();
 
-  const [input, setInput] = useState("");
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
-  const [listening, setListening] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [trade, setTrade] = useState<Trade>("flooring");
+  const [title, setTitle] = useState("");
+  const [areas, setAreas] = useState<AreaRow[]>([{ ...EMPTY_AREA }]);
+  const [totalSqft, setTotalSqft] = useState("");
+  const [wallHeight, setWallHeight] = useState("8");
+  const [tier, setTier] = useState<QualityTier>("standard");
+  const [demo, setDemo] = useState(false);
+  const [prep, setPrep] = useState(false);
+  const [disposal, setDisposal] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [result, setResult] = useState<EstimatePayload | null>(null);
 
-  const busy = status === "submitted" || status === "streaming";
+  const showWallHeight = trade === "painting" || trade === "drywall";
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, busy]);
-
-  function submit(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!input.trim() && !files?.length) return;
-    sendMessage({ text: input || "📷", files });
-    setInput("");
-    setFiles(undefined);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  function setArea(i: number, patch: Partial<AreaRow>) {
+    setAreas((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)));
   }
 
-  function toggleVoice() {
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
+  function buildAreas(): AreaInput[] {
+    const direct = Number(totalSqft);
+    if (direct > 0) return [{ sqft: direct }];
+    return areas
+      .filter((a) => Number(a.length) > 0 && Number(a.width) > 0)
+      .map((a) => ({
+        name: a.name.trim() || undefined,
+        length_ft: Number(a.length),
+        width_ft: Number(a.width),
+      }));
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const inputAreas = buildAreas();
+    if (inputAreas.length === 0) {
+      toast.error(t.form.needArea);
       return;
     }
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = SPEECH_LANGS[lang] ?? "en-US";
-    rec.interimResults = true;
-    rec.continuous = false;
-    let finalText = "";
-    rec.onresult = (event: any) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const chunk = event.results[i][0].transcript;
-        if (event.results[i].isFinal) finalText += chunk;
-        else interim += chunk;
+    const sqft = Math.ceil(
+      inputAreas.reduce((s, a) => s + (a.sqft ?? (a.length_ft ?? 0) * (a.width_ft ?? 0)), 0)
+    );
+    startTransition(async () => {
+      try {
+        const payload = await computeEstimate({
+          trade,
+          title: title.trim() || `${t.trades[trade] ?? trade} — ${sqft} sqft`,
+          areas: inputAreas,
+          wall_height_ft: showWallHeight ? Number(wallHeight) || 8 : undefined,
+          quality_tier: tier,
+          conditions: { demo, prep, disposal },
+          client_name: clientName.trim() || undefined,
+        });
+        setResult(payload);
+      } catch {
+        toast.error(t.common.error);
       }
-      setInput((prev) => {
-        const base = prev.replace(/\s*\[…\]$/, "");
-        return finalText ? base + finalText : base + (interim ? ` [${interim}]` : "");
-      });
-    };
-    rec.onend = () => {
-      setListening(false);
-      setInput((prev) => prev.replace(/\s*\[.*\]$/, ""));
-    };
-    rec.onerror = () => setListening(false);
-    recognitionRef.current = rec;
-    rec.start();
-    setListening(true);
+    });
   }
 
   return (
@@ -80,151 +99,180 @@ export default function NewEstimatePage() {
         <h1 className="text-lg font-bold">{t.chat.title}</h1>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-44">
-        {messages.length === 0 && (
-          <div className="mt-10 flex flex-col items-center gap-3 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <Calculator className="h-7 w-7 text-primary" />
-            </span>
-            <p className="max-w-xs text-sm text-muted-foreground">{t.chat.intro}</p>
-          </div>
-        )}
-
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
-          >
-            <div
-              className={cn(
-                "max-w-[85%] space-y-2",
-                message.role === "user"
-                  ? "rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-primary-foreground"
-                  : "w-full"
-              )}
-            >
-              {message.parts.map((part, i) => {
-                if (part.type === "text") {
-                  return (
-                    <p key={i} className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {part.text}
-                    </p>
-                  );
-                }
-                if (part.type === "file" && part.mediaType?.startsWith("image/")) {
-                  return (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={part.url}
-                      alt={part.filename ?? "photo"}
-                      className="max-h-48 rounded-lg"
-                    />
-                  );
-                }
-                if (part.type === "tool-lookup_prices") {
-                  return (
-                    <p key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2
-                        className={cn(
-                          "h-3 w-3",
-                          part.state !== "output-available" && "animate-spin"
-                        )}
-                      />
-                      {t.chat.checkingPrices}
-                    </p>
-                  );
-                }
-                if (part.type === "tool-calculate_estimate") {
-                  if (part.state === "output-available") {
-                    return (
-                      <EstimatePreview key={i} payload={part.output as EstimatePayload} />
-                    );
-                  }
-                  return (
-                    <p key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      {t.chat.calculating}
-                    </p>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          </div>
-        ))}
-
-        {busy && messages[messages.length - 1]?.role === "user" && (
-          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> {t.chat.thinking}
-          </p>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <form
-        onSubmit={submit}
-        className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 mx-auto w-full max-w-md border-t bg-background px-3 py-2"
-      >
-        {files && files.length > 0 && (
-          <p className="mb-1 text-xs text-muted-foreground">
-            📷 {Array.from(files).map((f) => f.name).join(", ")}
-          </p>
-        )}
-        <div className="flex items-end gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && setFiles(e.target.files)}
-          />
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="shrink-0"
-            aria-label={t.chat.addPhoto}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Camera className="h-5 w-5" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant={listening ? "destructive" : "outline"}
-            className="shrink-0"
-            aria-label={t.chat.voice}
-            onClick={toggleVoice}
-          >
-            {listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </Button>
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={listening ? t.chat.listening : t.chat.placeholder}
-            rows={1}
-            className="max-h-28 min-h-10 flex-1 resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="shrink-0"
-            disabled={busy || (!input.trim() && !files?.length)}
-            aria-label={t.chat.send}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+      <div className="flex-1 space-y-4 px-4 py-4 pb-28">
+        <div className="flex items-center gap-2 rounded-xl border border-dashed bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          {t.form.aiSoon}
         </div>
-      </form>
+
+        <form onSubmit={submit} className="space-y-4">
+          <Card>
+            <CardContent className="grid gap-4 p-4">
+              <div className="grid gap-1.5">
+                <Label>{t.form.trade}</Label>
+                <Select value={trade} onValueChange={(v) => setTrade(v as Trade)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRADES.map((tr) => (
+                      <SelectItem key={tr} value={tr}>
+                        {t.trades[tr] ?? tr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label>{t.form.jobTitle}</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t.form.jobTitlePlaceholder}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="grid gap-3 p-4">
+              <Label>{t.form.areas}</Label>
+              {areas.map((area, i) => (
+                <div key={i} className="flex items-end gap-2">
+                  <div className="grid flex-1 gap-1">
+                    <span className="text-[10px] text-muted-foreground">{t.form.areaName}</span>
+                    <Input
+                      value={area.name}
+                      onChange={(e) => setArea(i, { name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid w-20 gap-1">
+                    <span className="text-[10px] text-muted-foreground">{t.form.length}</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      value={area.length}
+                      onChange={(e) => setArea(i, { length: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid w-20 gap-1">
+                    <span className="text-[10px] text-muted-foreground">{t.form.width}</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      value={area.width}
+                      onChange={(e) => setArea(i, { width: e.target.value })}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className={cn("shrink-0", areas.length === 1 && "invisible")}
+                    aria-label={t.common.delete}
+                    onClick={() => setAreas((prev) => prev.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAreas((prev) => [...prev, { ...EMPTY_AREA }])}
+              >
+                <Plus className="mr-1 h-4 w-4" /> {t.form.addArea}
+              </Button>
+
+              <div className="grid gap-1.5">
+                <Label className="text-xs text-muted-foreground">{t.form.totalSqft}</Label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  value={totalSqft}
+                  onChange={(e) => setTotalSqft(e.target.value)}
+                />
+              </div>
+
+              {showWallHeight && (
+                <div className="grid gap-1.5">
+                  <Label>{t.form.wallHeight}</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={wallHeight}
+                    onChange={(e) => setWallHeight(e.target.value)}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="grid gap-4 p-4">
+              <div className="grid gap-1.5">
+                <Label>{t.form.tier}</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {TIERS.map((qt) => (
+                    <Button
+                      key={qt}
+                      type="button"
+                      size="sm"
+                      variant={tier === qt ? "default" : "outline"}
+                      onClick={() => setTier(qt)}
+                    >
+                      {qt === "basic"
+                        ? t.form.tierBasic
+                        : qt === "standard"
+                          ? t.form.tierStandard
+                          : t.form.tierPremium}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <Label>{t.form.conditions}</Label>
+                <label className="flex items-center justify-between text-sm">
+                  {t.form.demo}
+                  <Switch checked={demo} onCheckedChange={setDemo} />
+                </label>
+                <label className="flex items-center justify-between text-sm">
+                  {t.form.prep}
+                  <Switch checked={prep} onCheckedChange={setPrep} />
+                </label>
+                <label className="flex items-center justify-between text-sm">
+                  {t.form.disposal}
+                  <Switch checked={disposal} onCheckedChange={setDisposal} />
+                </label>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label>{t.form.clientName}</Label>
+                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button type="submit" size="lg" className="h-12 w-full" disabled={pending}>
+            {pending ? (
+              <>
+                <Loader2 className="mr-1 h-5 w-5 animate-spin" /> {t.chat.calculating}
+              </>
+            ) : (
+              t.form.calculate
+            )}
+          </Button>
+        </form>
+
+        {result && <EstimatePreview payload={result} />}
+      </div>
     </main>
   );
 }

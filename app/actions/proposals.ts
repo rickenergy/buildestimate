@@ -1,14 +1,64 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { generateText, Output } from "ai";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
-const LANG_NAMES: Record<string, string> = {
-  en: "English",
-  pt: "Brazilian Portuguese",
-  es: "Spanish",
+interface ProposalCopy {
+  scopeIntro: (title: string, sqft: string) => string;
+  phases: { demo: string; work: string; materials: string };
+  exclusions: string;
+  terms: string;
+}
+
+const PROPOSAL_COPY: Record<string, ProposalCopy> = {
+  en: {
+    scopeIntro: (title, sqft) => `Scope of work for: ${title} (approx. ${sqft} sqft).`,
+    phases: { demo: "Preparation & removal", work: "Work to be performed", materials: "Materials included" },
+    exclusions: [
+      "- Moving of furniture or personal belongings",
+      "- Structural repairs or code corrections not listed above",
+      "- Permits and inspection fees, unless stated",
+      "- Repair of hidden damage found after work begins (e.g. subfloor, framing) — priced separately via change order",
+    ].join("\n"),
+    terms: [
+      "- 40% deposit to schedule the job; balance due on completion.",
+      "- Any change to the scope requires a written change order before the work is done.",
+      "- Workmanship warranty: 1 year. Manufacturer warranties apply to materials.",
+      "- This proposal is valid for 30 days from the date sent.",
+    ].join("\n"),
+  },
+  pt: {
+    scopeIntro: (title, sqft) => `Escopo do trabalho: ${title} (aprox. ${sqft} sqft).`,
+    phases: { demo: "Preparação e remoção", work: "Serviços a executar", materials: "Materiais inclusos" },
+    exclusions: [
+      "- Mudança de móveis ou pertences pessoais",
+      "- Reparos estruturais ou correções de código não listados acima",
+      "- Licenças e taxas de inspeção, salvo indicação",
+      "- Reparo de danos ocultos descobertos após o início (ex: contrapiso, estrutura) — orçado à parte via change order",
+    ].join("\n"),
+    terms: [
+      "- Sinal de 40% para agendar; saldo na conclusão.",
+      "- Qualquer mudança de escopo exige change order por escrito antes da execução.",
+      "- Garantia de mão de obra: 1 ano. Materiais seguem garantia do fabricante.",
+      "- Esta proposta é válida por 30 dias a partir do envio.",
+    ].join("\n"),
+  },
+  es: {
+    scopeIntro: (title, sqft) => `Alcance del trabajo: ${title} (aprox. ${sqft} sqft).`,
+    phases: { demo: "Preparación y remoción", work: "Trabajos a realizar", materials: "Materiales incluidos" },
+    exclusions: [
+      "- Mover muebles o pertenencias personales",
+      "- Reparaciones estructurales o correcciones de código no listadas arriba",
+      "- Permisos y tarifas de inspección, salvo indicación",
+      "- Reparación de daños ocultos descubiertos al iniciar (ej: subsuelo, estructura) — se cotiza aparte con orden de cambio",
+    ].join("\n"),
+    terms: [
+      "- Depósito del 40% para agendar; saldo al terminar.",
+      "- Todo cambio de alcance requiere orden de cambio por escrito antes de ejecutarse.",
+      "- Garantía de mano de obra: 1 año. Los materiales llevan garantía del fabricante.",
+      "- Esta propuesta es válida por 30 días desde su envío.",
+    ].join("\n"),
+  },
 };
 
 /** Get the proposal for an estimate, creating a draft if none exists. */
@@ -42,7 +92,7 @@ export async function getOrCreateProposal(estimateId: string) {
   return created;
 }
 
-/** AI writes scope/exclusions/terms from the estimate content. */
+/** Builds scope/exclusions/terms from the estimate line items — deterministic, no AI. */
 export async function generateProposalText(estimateId: string) {
   const supabase = await createClient();
   const {
@@ -53,42 +103,36 @@ export async function generateProposalText(estimateId: string) {
   const [{ data: estimate }, { data: items }, { data: profile }] = await Promise.all([
     supabase.from("estimates").select("*, clients(name)").eq("id", estimateId).single(),
     supabase.from("estimate_items").select("kind, description, qty, unit").eq("estimate_id", estimateId).order("sort_order"),
-    supabase.from("profiles").select("language, company_name, full_name").eq("id", user.id).single(),
+    supabase.from("profiles").select("language").eq("id", user.id).single(),
   ]);
   if (!estimate) throw new Error("Estimate not found");
 
-  const lang = profile?.language ?? "en";
+  const copy = PROPOSAL_COPY[profile?.language ?? "en"] ?? PROPOSAL_COPY.en;
+  const rows = items ?? [];
+  const lines = (kinds: string[]) =>
+    rows
+      .filter((i) => kinds.includes(i.kind))
+      .map((i) => `- ${i.description} (${i.qty} ${i.unit})`)
+      .join("\n");
 
-  const { output } = await generateText({
-    model: "anthropic/claude-sonnet-5",
-    output: Output.object({
-      schema: z.object({
-        scope: z.string().describe("Professional scope of work, short paragraphs or bullet lines"),
-        exclusions: z.string().describe("What is NOT included, bullet lines"),
-        terms: z.string().describe("Payment terms, warranty, change-order policy — standard for small contractors"),
-      }),
-    }),
-    prompt: `Write a professional but simple construction proposal in ${LANG_NAMES[lang] ?? "English"} for a small contractor${profile?.company_name ? ` (${profile.company_name})` : ""}.
+  const demoLines = lines(["demo", "disposal"]);
+  const workLines = lines(["labor", "other"]);
+  const materialLines = lines(["material"]);
 
-Job: ${estimate.title} (${estimate.trade})
-Client: ${(estimate.clients as { name: string } | null)?.name ?? "—"}
-Location: ${estimate.location ?? "—"}
-Area: ${estimate.area_sqft ?? "—"} sqft
-Estimated duration: ${estimate.est_days ?? "—"} days, crew of ${estimate.crew_size ?? "—"}
+  const scope = [
+    copy.scopeIntro(estimate.title, String(estimate.area_sqft ?? "—")),
+    demoLines && `${copy.phases.demo}:\n${demoLines}`,
+    workLines && `${copy.phases.work}:\n${workLines}`,
+    materialLines && `${copy.phases.materials}:\n${materialLines}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
-Line items:
-${(items ?? []).map((i) => `- [${i.kind}] ${i.description}: ${i.qty} ${i.unit}`).join("\n")}
-
-Rules:
-- Scope: describe the work clearly, grouped by phase (prep/demo → install → finish). No prices inside the text.
-- Exclusions: standard for this trade (e.g. furniture moving, structural repairs, permits unless stated, unforeseen subfloor damage).
-- Terms: 30-40% deposit to schedule, balance on completion, workmanship warranty 1 year, changes require written change order, proposal valid 30 days.
-- Plain language a homeowner understands. No corporate filler.`,
-  });
+  const output = { scope, exclusions: copy.exclusions, terms: copy.terms };
 
   await supabase
     .from("proposals")
-    .update({ scope: output.scope, exclusions: output.exclusions, terms: output.terms })
+    .update(output)
     .eq("estimate_id", estimateId);
 
   revalidatePath(`/estimate/${estimateId}/proposal`);
