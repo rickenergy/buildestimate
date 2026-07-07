@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Plus, Users, Settings } from "lucide-react";
+import { Home, FileText, Plus, Users, Wallet, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDict } from "@/components/providers";
 
@@ -14,6 +14,7 @@ export function BottomNav() {
     { href: "/", label: t.nav.home, icon: Home },
     { href: "/estimates", label: t.nav.estimates, icon: FileText },
     { href: "/estimate/new", label: t.nav.new, icon: Plus, primary: true },
+    { href: "/finance", label: t.nav.finance, icon: Wallet },
     { href: "/clients", label: t.nav.clients, icon: Users },
     { href: "/settings", label: t.nav.settings, icon: Settings },
   ];
