@@ -6,6 +6,8 @@ import { buildFlooring } from "./flooring";
 import { buildPainting } from "./painting";
 import { buildDrywall } from "./drywall";
 import { buildTile } from "./tile";
+import { buildFraming } from "./framing";
+import { buildTrim } from "./trim";
 import { buildRoofing, buildCleaning, buildGeneric } from "./generic";
 import type { PriceEntry, TakeoffInput, TakeoffResult } from "./types";
 
@@ -38,6 +40,12 @@ export function computeTakeoff(input: TakeoffInput, prices: PriceEntry[]): Takeo
       break;
     case "roofing":
       buildRoofing(ctx);
+      break;
+    case "framing":
+      buildFraming(ctx);
+      break;
+    case "trim":
+      buildTrim(ctx);
       break;
     case "cleaning":
       buildCleaning(ctx);

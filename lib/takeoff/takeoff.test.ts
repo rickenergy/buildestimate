@@ -93,3 +93,71 @@ describe("totals + margin score", () => {
     expect(t.margin_score).toBe("low");
   });
 });
+
+describe("framing takeoff (EST ch. 13)", () => {
+  // 148 lf perimeter like the book's residence example
+  const result = computeTakeoff(
+    {
+      trade: "framing",
+      areas: [{ length_ft: 50, width_ft: 24 }], // perimeter 148 lf
+      wall_height_ft: 8,
+      doors: 2,
+      windows: 6,
+      material_name: "exterior with sheathing",
+    },
+    []
+  );
+
+  it("studs: 0.75/lf + 1 + corners + openings (EST Ex. 13-11..14)", () => {
+    const studs = result.items.find((i) => i.description.startsWith("Studs"));
+    // 148*0.75=111 → 112, +6 corners/intersections×2=12, +8 openings×3=24 → 148 +10% waste = 163
+    expect(studs?.qty).toBe(163);
+  });
+
+  it("plates: 3× wall lf (EST Ex. 13-10)", () => {
+    const plates = result.items.find((i) => i.description.startsWith("Plates"));
+    expect(plates?.qty).toBe(withWaste(148 * 3, 0.1));
+  });
+
+  it("sheathing: wall sf / 32 per sheet (EST Ex. 13-17)", () => {
+    const osb = result.items.find((i) => i.description.startsWith("Wall sheathing"));
+    // 148×8=1184 sf +10% = 1303 → /32 = 40.7 → 41 sheets
+    expect(osb?.qty).toBe(41);
+  });
+
+  it("includes headers and framing labor", () => {
+    expect(result.items.some((i) => i.description.startsWith("Headers"))).toBe(true);
+    expect(result.items.some((i) => i.description.startsWith("Framing labor"))).toBe(true);
+  });
+});
+
+describe("trim takeoff (EST 13-7)", () => {
+  it("baseboard = perimeter − 3 lf per door, ~5% waste (EST Ex. 13-25)", () => {
+    const result = computeTakeoff(
+      {
+        trade: "trim",
+        areas: [{ length_ft: 12, width_ft: 14 }], // 52 lf
+        doors: 1,
+      },
+      []
+    );
+    const base = result.items.find((i) => i.description.startsWith("Baseboard"));
+    expect(base?.qty).toBe(withWaste(52 - 3, 0.05)); // 49 → 52
+    expect(result.items.some((i) => i.description.startsWith("Door casing"))).toBe(true);
+  });
+
+  it("metal trim: aluminum fascia + soffit + drip edge", () => {
+    const result = computeTakeoff(
+      {
+        trade: "trim",
+        areas: [{ sqft: 1600 }],
+        linear_feet: 160,
+        material_name: "metal aluminum fascia soffit",
+      },
+      []
+    );
+    expect(result.items.some((i) => i.description.startsWith("Aluminum fascia"))).toBe(true);
+    expect(result.items.some((i) => i.description.startsWith("Soffit"))).toBe(true);
+    expect(result.items.some((i) => i.description.startsWith("Drip edge"))).toBe(true);
+  });
+});

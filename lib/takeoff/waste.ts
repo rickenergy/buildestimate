@@ -14,6 +14,14 @@ export function wasteFactor(trade: string, materialName = ""): number {
       return 0.12;
     case "roofing":
       return 0.12;
+    case "framing":
+      return 0.1; // dimensional lumber cuts/culls (EST ch. 13 practice)
+    case "trim":
+      return 0.05; // EST Ex. 13-25: 421 lf → order 440 (~5%)
+    case "siding":
+      return 0.12;
+    case "concrete":
+      return 0.08;
     case "painting":
       return 0.05; // extra paint allowance
     default:

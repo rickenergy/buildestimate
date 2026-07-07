@@ -8,6 +8,10 @@ const PRODUCTION_SQFT_PER_PERSON_DAY: Record<string, number> = {
   painting: 800, // wall sqft, 2 coats
   drywall: 350, // hang + finish averaged over trip days
   roofing: 700,
+  framing: 300, // wall sqft/day — EST Fig. 13-55: walls 18–30 hrs/MBM
+  trim: 450, // EST Fig. 13-55 lf rates; floor-sqft basis
+  siding: 300,
+  concrete: 150,
   landscaping: 400,
   cleaning: 2000,
   remodeling: 200,

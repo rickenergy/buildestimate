@@ -58,6 +58,90 @@ export async function computeEstimate(input: TakeoffInput) {
   };
 }
 
+export interface ProjectComputeResult {
+  payload: SaveEstimatePayload;
+  perTrade: { trade: string; takeoff: TakeoffResult }[];
+}
+
+/**
+ * Multi-trade project takeoff from the smart wizard.
+ * Each trade is computed by the deterministic engine, then aggregated into
+ * one estimate (umbrella trade "remodeling" when more than one trade).
+ */
+export async function computeProject(
+  inputs: TakeoffInput[],
+  meta: {
+    title: string;
+    area_sqft: number;
+    quality_tier?: "basic" | "standard" | "premium";
+    conditions?: Record<string, unknown>;
+    client_name?: string;
+    location?: string;
+  }
+): Promise<ProjectComputeResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  if (inputs.length === 0) throw new Error("No work selected");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("overhead_pct, profit_pct, tax_pct, min_margin_pct")
+    .eq("id", user.id)
+    .single();
+
+  const perTrade: { trade: string; takeoff: TakeoffResult }[] = [];
+  for (const input of inputs) {
+    const prices = await loadPrices(supabase, input.trade);
+    perTrade.push({ trade: input.trade, takeoff: computeTakeoff(input, prices) });
+  }
+
+  const allItems = perTrade.flatMap((t) => t.takeoff.items);
+  const totals = computeTotals(
+    allItems,
+    Number(profile?.overhead_pct ?? 10),
+    Number(profile?.profit_pct ?? 20),
+    Number(profile?.tax_pct ?? 0),
+    Number(profile?.min_margin_pct ?? 15)
+  );
+
+  const sum = (kinds: string[]) =>
+    Math.round(
+      allItems.filter((i) => kinds.includes(i.kind)).reduce((s, i) => s + i.total, 0) * 100
+    ) / 100;
+
+  const aggregated: TakeoffResult = {
+    items: allItems,
+    area_sqft: meta.area_sqft,
+    waste_pct: Math.round(
+      perTrade.reduce((s, t) => s + t.takeoff.waste_pct, 0) / perTrade.length
+    ),
+    crew_size: Math.max(...perTrade.map((t) => t.takeoff.crew_size)),
+    est_days: Math.round(perTrade.reduce((s, t) => s + t.takeoff.est_days, 0) * 2) / 2,
+    material_cost: sum(["material"]),
+    labor_cost: sum(["labor", "other"]),
+    demo_cost: sum(["demo", "disposal"]),
+  };
+
+  return {
+    payload: {
+      input: {
+        trade: inputs.length === 1 ? inputs[0].trade : "remodeling",
+        title: meta.title,
+        quality_tier: meta.quality_tier,
+        conditions: meta.conditions ?? {},
+        location: meta.location,
+        client_name: meta.client_name,
+      },
+      takeoff: aggregated,
+      totals,
+    },
+    perTrade,
+  };
+}
+
 export async function saveEstimate(payload: SaveEstimatePayload) {
   const supabase = await createClient();
   const {
