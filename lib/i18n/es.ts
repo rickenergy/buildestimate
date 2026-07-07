@@ -145,7 +145,24 @@ export const es: Dict = {
     deposit: "Depósito para agendar",
     progress: "Pago intermedio",
     final: "Final al terminar",
-    competitorsSoon: "Comparación de precios de competidores con IA — muy pronto",
+    competitorsSoon: "Guarda el presupuesto para activar la inteligencia de mercado con IA",
+  },
+
+  market: {
+    title: "Inteligencia de mercado",
+    intro: "La IA compara tu precio con trabajos similares en tu región, el estado y las top companies.",
+    analyze: "Analizar mercado",
+    analyzing: "Analizando mercado…",
+    refresh: "Actualizar",
+    region: "Tu región",
+    state: "Promedio estatal",
+    topCompanies: "Top companies",
+    competitors: "Perfiles de competidores",
+    avg: "Promedio",
+    ourPrice: "Tu precio",
+    priceToBeat: "Precio para ganar",
+    needsKey: "Falta la clave de IA. Agrega AI_GATEWAY_API_KEY en .env.local (o despliega en Vercel, donde el AI Gateway funciona automático).",
+    disclaimer: "Estimaciones de mercado por IA para planificación — no son cotizaciones reales. Confirma localmente antes de ajustar tu propuesta.",
   },
 
   chat: {

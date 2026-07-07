@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EstimateEditor } from "@/components/estimate-editor";
+import { MarketInsightsCard } from "@/components/market-insights";
+import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
 
 export default async function EstimatePage({
@@ -27,10 +29,18 @@ export default async function EstimatePage({
   if (!estimate) notFound();
 
   return (
-    <EstimateEditor
-      estimate={estimate as Estimate & { clients: { name: string } | null }}
-      items={(items ?? []) as EstimateItem[]}
-      minMarginPct={Number(profile?.min_margin_pct ?? 15)}
-    />
+    <>
+      <EstimateEditor
+        estimate={estimate as Estimate & { clients: { name: string } | null }}
+        items={(items ?? []) as EstimateItem[]}
+        minMarginPct={Number(profile?.min_margin_pct ?? 15)}
+      />
+      <div className="px-4 pb-8">
+        <MarketInsightsCard
+          estimateId={id}
+          initial={(estimate.market_insights as MarketInsights | null) ?? null}
+        />
+      </div>
+    </>
   );
 }

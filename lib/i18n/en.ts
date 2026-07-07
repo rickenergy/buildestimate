@@ -143,7 +143,24 @@ export const en = {
     deposit: "Deposit to schedule",
     progress: "Progress payment",
     final: "Final on completion",
-    competitorsSoon: "AI competitor price check — coming soon",
+    competitorsSoon: "Save the estimate to unlock AI market intelligence",
+  },
+
+  market: {
+    title: "Market intelligence",
+    intro: "AI compares your price with similar jobs in your region, state and top companies.",
+    analyze: "Analyze market",
+    analyzing: "Analyzing market…",
+    refresh: "Refresh",
+    region: "Your region",
+    state: "State average",
+    topCompanies: "Top companies",
+    competitors: "Competitor profiles",
+    avg: "Average",
+    ourPrice: "Your price",
+    priceToBeat: "Price to beat",
+    needsKey: "AI key missing. Add AI_GATEWAY_API_KEY to .env.local (or deploy on Vercel, where the AI Gateway works automatically).",
+    disclaimer: "AI market estimates for planning — not real quotes. Confirm locally before adjusting your bid.",
   },
 
   chat: {
