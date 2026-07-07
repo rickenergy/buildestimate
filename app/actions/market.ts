@@ -76,7 +76,12 @@ export async function generateMarketInsights(estimateId: string): Promise<Market
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  if (!process.env.AI_GATEWAY_API_KEY && !process.env.ANTHROPIC_API_KEY && !process.env.VERCEL) {
+  if (
+    !process.env.AI_GATEWAY_API_KEY &&
+    !process.env.ANTHROPIC_API_KEY &&
+    !process.env.VERCEL &&
+    !process.env.VERCEL_OIDC_TOKEN
+  ) {
     return { ok: false, needsKey: true };
   }
 
