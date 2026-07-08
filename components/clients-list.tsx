@@ -46,7 +46,7 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
     Math.floor((Date.now() - new Date(c.updated_at).getTime()) / 86400000);
 
   return (
-    <main className="flex flex-col gap-4 px-4 py-6">
+    <section className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{t.clients.title}</h1>
         <Button size="sm" onClick={() => setAdding(true)}>
@@ -142,7 +142,7 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
           router.refresh();
         }}
       />
-    </main>
+    </section>
   );
 }
 

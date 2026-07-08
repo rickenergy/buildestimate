@@ -114,7 +114,7 @@ export function FinanceManager({ transactions, estimates }: Props) {
   const catLabel = (c: string) => t.finance.categories[c] ?? c;
 
   return (
-    <main className="flex flex-col gap-4 px-4 py-4">
+    <section className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-bold">{t.finance.title}</h1>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
@@ -320,6 +320,6 @@ export function FinanceManager({ transactions, estimates }: Props) {
           ))}
         </div>
       )}
-    </main>
+    </section>
   );
 }

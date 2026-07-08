@@ -7,6 +7,15 @@ export type ClientStatus =
   | "approved"
   | "lost";
 
+/** CRM pipeline order — Kanban columns left → right. */
+export const CLIENT_STAGES: ClientStatus[] = [
+  "lead",
+  "estimate_sent",
+  "follow_up",
+  "approved",
+  "lost",
+];
+
 export type EstimateStatus = "draft" | "ready" | "sent" | "approved" | "lost";
 
 export type QualityTier = "basic" | "standard" | "premium";
@@ -66,6 +75,8 @@ export interface Estimate {
   est_days: number | null;
   project_meta: Record<string, unknown> | null;
   market_insights: Record<string, unknown> | null;
+  start_date: string | null;
+  end_date: string | null;
   created_at: string;
   updated_at: string;
 }

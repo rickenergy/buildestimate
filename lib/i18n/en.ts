@@ -171,6 +171,52 @@ export const en = {
     gutter_clean: "Gutter cleaning",
   } as Record<string, string>,
 
+  tasks: {
+    title: "Job tasks",
+    placeholder: "New task… e.g. order materials",
+    block: "Block",
+    unblock: "Unblock",
+    status: {
+      todo: "To do",
+      in_progress: "In progress",
+      done: "Done",
+      blocked: "Blocked",
+    } as Record<string, string>,
+  },
+
+  alerts: {
+    title: "Alarms & incidents",
+    allClear: "All clear — no incidents.",
+    onTrack: "On track",
+    attention: "Attention",
+    incident: "Incident",
+    cashEvolution: "Cash evolution (60 days)",
+    timeline: "Project timeline",
+    noProjects: "No active projects.",
+    start: "Start",
+    forecastEnd: "Forecast end",
+    tasksDone: "tasks",
+    kinds: {
+      taskOverdue: "Task overdue",
+      taskDueSoon: "Task due soon",
+      taskBlocked: "Task blocked",
+      projectLate: "Project past forecast end",
+      projectEndingSoon: "Project ending soon",
+      overBudget: "Spending over estimate",
+      lowMargin: "Low margin",
+    } as Record<string, string>,
+  },
+
+  crm: {
+    kanban: "Kanban",
+    list: "List",
+    pipeline: "Pipeline",
+    openDeals: "Open deals",
+    winRate: "Win rate",
+    funnel: "Pipeline by stage",
+    emptyStage: "Empty",
+  },
+
   share: {
     savePdf: "Save PDF",
     whatsappTitle: "Send via WhatsApp",

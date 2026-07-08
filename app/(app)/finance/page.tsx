@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { FinanceManager } from "@/components/finance-manager";
+import { FinanceDashboard } from "@/components/finance-dashboard";
 import type { JobTransaction } from "@/app/actions/finance";
+import type { ProjectLike, TaskLike } from "@/lib/alerts";
 
 export default async function FinancePage() {
   const supabase = await createClient();
@@ -8,26 +10,52 @@ export default async function FinancePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: transactions }, { data: estimates }] = await Promise.all([
-    supabase
-      .from("job_transactions")
-      .select("*, estimates(title)")
-      .eq("user_id", user!.id)
-      .order("occurred_at", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("estimates")
-      .select("id, title")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false })
-      .limit(50),
-  ]);
+  const [{ data: transactions }, { data: estimates }, { data: projects }, { data: tasks }] =
+    await Promise.all([
+      supabase
+        .from("job_transactions")
+        .select("*, estimates(title)")
+        .eq("user_id", user!.id)
+        .order("occurred_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("estimates")
+        .select("id, title")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("estimates")
+        .select(
+          "id, title, status, est_days, start_date, end_date, created_at, total, material_cost, labor_cost, demo_cost, margin_score"
+        )
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("job_tasks")
+        .select("id, estimate_id, title, status, due_date")
+        .eq("user_id", user!.id),
+    ]);
 
   return (
-    <FinanceManager
-      transactions={(transactions ?? []) as JobTransaction[]}
-      estimates={(estimates ?? []) as { id: string; title: string }[]}
-    />
+    <main className="flex flex-col gap-4 px-4 py-4">
+      <FinanceDashboard
+        projects={(projects ?? []).map((p) => ({
+          ...p,
+          total: Number(p.total),
+          material_cost: Number(p.material_cost),
+          labor_cost: Number(p.labor_cost),
+          demo_cost: Number(p.demo_cost),
+        })) as ProjectLike[]}
+        tasks={(tasks ?? []) as TaskLike[]}
+        transactions={(transactions ?? []) as JobTransaction[]}
+      />
+      <FinanceManager
+        transactions={(transactions ?? []) as JobTransaction[]}
+        estimates={(estimates ?? []) as { id: string; title: string }[]}
+      />
+    </main>
   );
 }

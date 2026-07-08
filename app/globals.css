@@ -144,3 +144,12 @@
     background: white;
   }
 }
+
+:root {
+  --chart-income: #2e7d5b; /* green — CVD-safe pair with slate blue */
+  --chart-expense: #4a6db5;
+}
+.dark {
+  --chart-income: #6fcba4;
+  --chart-expense: #8faee8;
+}

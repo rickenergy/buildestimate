@@ -4,6 +4,8 @@ import { EstimateEditor } from "@/components/estimate-editor";
 import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
 import { EstimateShare } from "@/components/estimate-share";
+import { TasksCard } from "@/components/tasks-card";
+import type { JobTask } from "@/app/actions/tasks";
 import type { JobTransaction } from "@/app/actions/finance";
 import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
@@ -35,6 +37,12 @@ export default async function EstimatePage({
         .order("occurred_at", { ascending: false }),
     ]);
 
+  const { data: jobTasks } = await supabase
+    .from("job_tasks")
+    .select("*")
+    .eq("estimate_id", id)
+    .order("created_at");
+
   const { data: proposal } = await supabase
     .from("proposals")
     .select("token")
@@ -65,6 +73,12 @@ export default async function EstimatePage({
           estDays={estimate.est_days}
           companyName={company?.company_name ?? null}
           proposalToken={proposal?.token ?? null}
+        />
+        <TasksCard
+          estimateId={id}
+          tasks={(jobTasks ?? []) as JobTask[]}
+          startDate={estimate.start_date ?? null}
+          endDate={estimate.end_date ?? null}
         />
         <JobCostCard
           estimateId={id}

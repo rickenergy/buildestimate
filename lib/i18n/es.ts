@@ -173,6 +173,52 @@ export const es: Dict = {
     gutter_clean: "Limpieza de canaletas",
   },
 
+  tasks: {
+    title: "Tareas del trabajo",
+    placeholder: "Nueva tarea… ej: comprar materiales",
+    block: "Bloquear",
+    unblock: "Desbloquear",
+    status: {
+      todo: "Por hacer",
+      in_progress: "En curso",
+      done: "Terminada",
+      blocked: "Bloqueada",
+    },
+  },
+
+  alerts: {
+    title: "Alarmas e incidentes",
+    allClear: "Todo bien — sin incidentes.",
+    onTrack: "En tiempo",
+    attention: "Atención",
+    incident: "Incidente",
+    cashEvolution: "Evolución de caja (60 días)",
+    timeline: "Línea de tiempo de proyectos",
+    noProjects: "Sin proyectos activos.",
+    start: "Inicio",
+    forecastEnd: "Fin previsto",
+    tasksDone: "tareas",
+    kinds: {
+      taskOverdue: "Tarea atrasada",
+      taskDueSoon: "Tarea vence pronto",
+      taskBlocked: "Tarea bloqueada",
+      projectLate: "Proyecto pasado del plazo",
+      projectEndingSoon: "Proyecto por terminar",
+      overBudget: "Gasto sobre el presupuesto",
+      lowMargin: "Margen bajo",
+    },
+  },
+
+  crm: {
+    kanban: "Kanban",
+    list: "Lista",
+    pipeline: "Pipeline",
+    openDeals: "Tratos abiertos",
+    winRate: "Tasa de cierre",
+    funnel: "Pipeline por etapa",
+    emptyStage: "Vacío",
+  },
+
   share: {
     savePdf: "Guardar PDF",
     whatsappTitle: "Enviar por WhatsApp",
