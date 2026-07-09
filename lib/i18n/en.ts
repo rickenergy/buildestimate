@@ -1,5 +1,5 @@
 export const en = {
-  appName: "BuildEstimate AI",
+  appName: "ContractorOS AI",
   tagline: "Photos, measurements or voice → professional estimate in minutes",
 
   nav: { home: "Home", estimates: "Estimates", new: "New", finance: "Finance", clients: "Clients", settings: "Settings" },
@@ -217,6 +217,53 @@ export const en = {
     emptyStage: "Empty",
   },
 
+
+  ai: {
+    tab: "AI",
+    description: "Job description",
+    descriptionPlaceholder: "e.g. two-story house, vinyl siding, mildew on the north side…",
+    measurements: "Known measurements (optional)",
+    measurementsPlaceholder: "e.g. driveway 20×40 ft, deck 300 sqft",
+    photos: "Job photos",
+    generate: "Generate AI draft",
+    generating: "Reading photos & building draft…",
+    needInput: "Add a description or at least one photo",
+    disclaimer: "AI-generated draft. Final price must be reviewed and approved by the contractor.",
+    scope: "Detected scope",
+    assumptions: "Assumptions",
+    warnings: "Verify on site",
+    lineItems: "Line items (costs)",
+    equipment: "Equipment",
+    totalCost: "Total cost",
+    prices: { minimum: "Minimum", recommended: "Recommended", premium: "Premium" } as Record<string, string>,
+    accept: "Save as estimate (review next)",
+  },
+
+  profit: {
+    title: "Profit protection",
+    ok: "Projected profit {margin}% — above your minimum.",
+    low: "This estimate has only {margin}% projected profit. Recommended minimum is {min}%. Suggested final price: {price}.",
+  },
+
+  billing: {
+    title: "Billing",
+    invoices: "Invoices",
+    newInvoice: "New invoice",
+    invoicePlaceholder: "e.g. Deposit",
+    paymentLink: "Payment link",
+    markPaid: "Mark paid",
+    void: "Void",
+    invStatus: { unpaid: "Unpaid", paid: "Paid", void: "Void" } as Record<string, string>,
+    needsStripe: "Add STRIPE_SECRET_KEY to enable payment links (Stripe dashboard → API keys).",
+    changeOrders: "Change orders",
+    newCo: "New change order",
+    coPlaceholder: "e.g. Add garage wall",
+    approve: "Approve",
+    decline: "Decline",
+    coStatus: { pending: "Pending", approved: "Approved", declined: "Declined" } as Record<string, string>,
+    totalWithCo: "Contract + approved change orders",
+  },
+
   share: {
     savePdf: "Save PDF",
     whatsappTitle: "Send via WhatsApp",
@@ -331,7 +378,7 @@ export const en = {
     description: "Description",
     estimatedPrice: "estimated price",
     generateProposal: "Generate proposal",
-    status: { draft: "Draft", ready: "Ready", sent: "Sent", approved: "Approved", lost: "Lost" },
+    status: { draft: "Draft", ready: "Ready", sent: "Sent", approved: "Approved", lost: "Lost", ai_generated: "AI draft", change_requested: "Change requested", job: "Job" } as Record<string, string>,
     client: "Client",
     noClient: "No client",
     saved: "Saved",

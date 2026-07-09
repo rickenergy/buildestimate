@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BuildEstimate AI",
-    short_name: "BuildEstimate",
+    name: "ContractorOS AI",
+    short_name: "ContractorOS",
     description:
-      "Photos, measurements or voice → professional construction estimates in minutes.",
-    start_url: "/",
+      "AI estimates for local contractors.",
+    start_url: "/home",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#0f172a",
+    theme_color: "#173f33",
     orientation: "portrait",
     icons: [
       {

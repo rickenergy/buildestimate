@@ -34,7 +34,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push("/");
+      router.push("/home");
       router.refresh();
     } else {
       const { data, error } = await supabase.auth.signUp({
@@ -48,7 +48,7 @@ export default function LoginPage() {
         return;
       }
       if (data.session) {
-        router.push("/");
+        router.push("/home");
         router.refresh();
       } else {
         setMessage("Check your email to confirm your account. / Verifique seu email. / Revisa tu email.");
@@ -60,8 +60,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
       <div className="flex flex-col items-center gap-2">
-        <Image src="/icon.svg" alt="BuildEstimate AI" width={72} height={72} className="rounded-2xl" />
-        <h1 className="text-2xl font-bold">BuildEstimate AI</h1>
+        <Image src="/icon.svg" alt="ContractorOS AI" width={72} height={72} className="rounded-2xl" />
+        <h1 className="text-2xl font-bold">ContractorOS AI</h1>
         <p className="text-center text-sm text-muted-foreground max-w-xs">
           Photos, measurements or voice → professional estimate in minutes
         </p>

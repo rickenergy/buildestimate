@@ -143,7 +143,7 @@ export default async function PublicProposalPage({
       )}
 
       <footer className="pb-8 pt-4 text-center text-[10px] text-muted-foreground">
-        {t.proposal.preparedBy} {contractor.company_name || contractor.full_name} · BuildEstimate AI
+        {t.proposal.preparedBy} {contractor.company_name || contractor.full_name} · ContractorOS AI
       </footer>
     </main>
   );

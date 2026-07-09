@@ -11,7 +11,7 @@ export function BottomNav() {
   const t = useDict();
 
   const items = [
-    { href: "/", label: t.nav.home, icon: Home },
+    { href: "/home", label: t.nav.home, icon: Home },
     { href: "/estimates", label: t.nav.estimates, icon: FileText },
     { href: "/estimate/new", label: t.nav.new, icon: Plus, primary: true },
     { href: "/finance", label: t.nav.finance, icon: Wallet },
@@ -24,7 +24,7 @@ export function BottomNav() {
       <div className="mx-auto flex max-w-md items-center justify-around md:max-w-2xl">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+            pathname.startsWith(href);
           if (primary) {
             return (
               <Link

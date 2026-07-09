@@ -19,14 +19,14 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "BuildEstimate AI",
+  title: "ContractorOS AI",
   description:
-    "Photos, measurements or voice → professional construction estimates in minutes.",
-  applicationName: "BuildEstimate AI",
+    "AI estimates for local contractors — photo, plan or description in, professional proposal out.",
+  applicationName: "ContractorOS AI",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BuildEstimate",
+    title: "ContractorOS",
   },
 };
 

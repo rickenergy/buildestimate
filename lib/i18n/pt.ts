@@ -1,7 +1,7 @@
 import type { Dict } from "./en";
 
 export const pt: Dict = {
-  appName: "BuildEstimate AI",
+  appName: "ContractorOS AI",
   tagline: "Fotos, medidas ou voz → orçamento profissional em minutos",
 
   nav: { home: "Início", estimates: "Orçamentos", new: "Novo", finance: "Finanças", clients: "Clientes", settings: "Ajustes" },
@@ -219,6 +219,53 @@ export const pt: Dict = {
     emptyStage: "Vazio",
   },
 
+
+  ai: {
+    tab: "IA",
+    description: "Descrição do trabalho",
+    descriptionPlaceholder: "ex: casa de 2 andares, siding de vinil, mofo no lado norte…",
+    measurements: "Medidas conhecidas (opcional)",
+    measurementsPlaceholder: "ex: driveway 20×40 ft, deck 300 sqft",
+    photos: "Fotos do trabalho",
+    generate: "Gerar rascunho com IA",
+    generating: "Lendo fotos e montando rascunho…",
+    needInput: "Adicione uma descrição ou pelo menos uma foto",
+    disclaimer: "Rascunho gerado por IA. O preço final deve ser revisado e aprovado pelo contractor.",
+    scope: "Escopo detectado",
+    assumptions: "Premissas",
+    warnings: "Verificar no local",
+    lineItems: "Itens (custos)",
+    equipment: "Equipamentos",
+    totalCost: "Custo total",
+    prices: { minimum: "Mínimo", recommended: "Recomendado", premium: "Premium" },
+    accept: "Salvar como orçamento (revisar depois)",
+  },
+
+  profit: {
+    title: "Proteção de lucro",
+    ok: "Lucro projetado {margin}% — acima do seu mínimo.",
+    low: "Este orçamento tem só {margin}% de lucro projetado. Mínimo recomendado: {min}%. Preço final sugerido: {price}.",
+  },
+
+  billing: {
+    title: "Cobrança",
+    invoices: "Faturas",
+    newInvoice: "Nova fatura",
+    invoicePlaceholder: "ex: Sinal",
+    paymentLink: "Link de pagamento",
+    markPaid: "Marcar paga",
+    void: "Anular",
+    invStatus: { unpaid: "Em aberto", paid: "Paga", void: "Anulada" },
+    needsStripe: "Adicione STRIPE_SECRET_KEY para ativar links de pagamento (painel Stripe → API keys).",
+    changeOrders: "Change orders",
+    newCo: "Novo change order",
+    coPlaceholder: "ex: Adicionar parede da garagem",
+    approve: "Aprovar",
+    decline: "Recusar",
+    coStatus: { pending: "Pendente", approved: "Aprovado", declined: "Recusado" },
+    totalWithCo: "Contrato + change orders aprovados",
+  },
+
   share: {
     savePdf: "Salvar PDF",
     whatsappTitle: "Enviar por WhatsApp",
@@ -333,7 +380,7 @@ export const pt: Dict = {
     description: "Descrição",
     estimatedPrice: "preço estimado",
     generateProposal: "Gerar proposta",
-    status: { draft: "Rascunho", ready: "Pronto", sent: "Enviado", approved: "Aprovado", lost: "Perdido" },
+    status: { draft: "Rascunho", ready: "Pronto", sent: "Enviado", approved: "Aprovado", lost: "Perdido", ai_generated: "Rascunho IA", change_requested: "Alteração pedida", job: "Em obra" },
     client: "Cliente",
     noClient: "Sem cliente",
     saved: "Salvo",

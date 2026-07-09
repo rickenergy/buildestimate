@@ -1,7 +1,7 @@
 import type { Dict } from "./en";
 
 export const es: Dict = {
-  appName: "BuildEstimate AI",
+  appName: "ContractorOS AI",
   tagline: "Fotos, medidas o voz → presupuesto profesional en minutos",
 
   nav: { home: "Inicio", estimates: "Presupuestos", new: "Nuevo", finance: "Finanzas", clients: "Clientes", settings: "Ajustes" },
@@ -219,6 +219,53 @@ export const es: Dict = {
     emptyStage: "Vacío",
   },
 
+
+  ai: {
+    tab: "IA",
+    description: "Descripción del trabajo",
+    descriptionPlaceholder: "ej: casa de 2 pisos, siding de vinilo, moho en el lado norte…",
+    measurements: "Medidas conocidas (opcional)",
+    measurementsPlaceholder: "ej: driveway 20×40 ft, deck 300 sqft",
+    photos: "Fotos del trabajo",
+    generate: "Generar borrador con IA",
+    generating: "Leyendo fotos y armando borrador…",
+    needInput: "Agrega una descripción o al menos una foto",
+    disclaimer: "Borrador generado por IA. El precio final debe ser revisado y aprobado por el contratista.",
+    scope: "Alcance detectado",
+    assumptions: "Supuestos",
+    warnings: "Verificar en sitio",
+    lineItems: "Partidas (costos)",
+    equipment: "Equipos",
+    totalCost: "Costo total",
+    prices: { minimum: "Mínimo", recommended: "Recomendado", premium: "Premium" },
+    accept: "Guardar como presupuesto (revisar después)",
+  },
+
+  profit: {
+    title: "Protección de ganancia",
+    ok: "Ganancia proyectada {margin}% — sobre tu mínimo.",
+    low: "Este presupuesto tiene solo {margin}% de ganancia proyectada. Mínimo recomendado: {min}%. Precio final sugerido: {price}.",
+  },
+
+  billing: {
+    title: "Cobros",
+    invoices: "Facturas",
+    newInvoice: "Nueva factura",
+    invoicePlaceholder: "ej: Depósito",
+    paymentLink: "Link de pago",
+    markPaid: "Marcar pagada",
+    void: "Anular",
+    invStatus: { unpaid: "Pendiente", paid: "Pagada", void: "Anulada" },
+    needsStripe: "Agrega STRIPE_SECRET_KEY para activar links de pago (panel Stripe → API keys).",
+    changeOrders: "Órdenes de cambio",
+    newCo: "Nueva orden de cambio",
+    coPlaceholder: "ej: Agregar pared del garaje",
+    approve: "Aprobar",
+    decline: "Rechazar",
+    coStatus: { pending: "Pendiente", approved: "Aprobada", declined: "Rechazada" },
+    totalWithCo: "Contrato + órdenes aprobadas",
+  },
+
   share: {
     savePdf: "Guardar PDF",
     whatsappTitle: "Enviar por WhatsApp",
@@ -333,7 +380,7 @@ export const es: Dict = {
     description: "Descripción",
     estimatedPrice: "precio estimado",
     generateProposal: "Generar propuesta",
-    status: { draft: "Borrador", ready: "Listo", sent: "Enviado", approved: "Aprobado", lost: "Perdido" },
+    status: { draft: "Borrador", ready: "Listo", sent: "Enviado", approved: "Aprobado", lost: "Perdido", ai_generated: "Borrador IA", change_requested: "Cambio pedido", job: "En obra" },
     client: "Cliente",
     noClient: "Sin cliente",
     saved: "Guardado",

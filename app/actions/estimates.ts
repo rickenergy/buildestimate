@@ -18,6 +18,7 @@ interface SaveEstimatePayload {
     start_timeframe?: string;
     client_name?: string;
     project_meta?: Record<string, unknown>;
+    status?: string;
   };
   takeoff: TakeoffResult;
   totals: EstimateTotals;
@@ -203,7 +204,7 @@ export async function saveEstimate(payload: SaveEstimatePayload) {
       client_id: clientId,
       title: input.title,
       trade: input.trade,
-      status: "ready",
+      status: input.status ?? "ready",
       area_sqft: takeoff.area_sqft,
       quality_tier: input.quality_tier ?? "standard",
       conditions: input.conditions ?? {},
@@ -241,7 +242,7 @@ export async function saveEstimate(payload: SaveEstimatePayload) {
   const { error: itemsError } = await supabase.from("estimate_items").insert(items);
   if (itemsError) throw new Error(itemsError.message);
 
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/estimates");
   return { id: estimate.id as string };
 }
@@ -358,12 +359,12 @@ export async function updateEstimateStatus(estimateId: string, status: string) {
   await supabase.from("estimates").update({ status }).eq("id", estimateId);
   revalidatePath(`/estimate/${estimateId}`);
   revalidatePath("/estimates");
-  revalidatePath("/");
+  revalidatePath("/home");
 }
 
 export async function deleteEstimate(estimateId: string) {
   const supabase = await createClient();
   await supabase.from("estimates").delete().eq("id", estimateId);
   revalidatePath("/estimates");
-  revalidatePath("/");
+  revalidatePath("/home");
 }

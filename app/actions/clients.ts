@@ -31,7 +31,7 @@ export async function updateClientStatus(id: string, status: ClientStatus) {
   const supabase = await createClient();
   await supabase.from("clients").update({ status }).eq("id", id);
   revalidatePath("/clients");
-  revalidatePath("/");
+  revalidatePath("/home");
 }
 
 export async function deleteClient(id: string) {

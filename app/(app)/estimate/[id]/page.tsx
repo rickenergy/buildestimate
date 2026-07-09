@@ -5,7 +5,9 @@ import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
 import { EstimateShare } from "@/components/estimate-share";
 import { TasksCard } from "@/components/tasks-card";
+import { BillingCard } from "@/components/billing-card";
 import type { JobTask } from "@/app/actions/tasks";
+import type { ChangeOrder, Invoice } from "@/app/actions/billing";
 import type { JobTransaction } from "@/app/actions/finance";
 import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
@@ -36,6 +38,11 @@ export default async function EstimatePage({
         .eq("estimate_id", id)
         .order("occurred_at", { ascending: false }),
     ]);
+
+  const [{ data: invoices }, { data: changeOrders }] = await Promise.all([
+    supabase.from("invoices").select("*").eq("estimate_id", id).order("created_at"),
+    supabase.from("change_orders").select("*").eq("estimate_id", id).order("created_at"),
+  ]);
 
   const { data: jobTasks } = await supabase
     .from("job_tasks")
@@ -79,6 +86,12 @@ export default async function EstimatePage({
           tasks={(jobTasks ?? []) as JobTask[]}
           startDate={estimate.start_date ?? null}
           endDate={estimate.end_date ?? null}
+        />
+        <BillingCard
+          estimateId={id}
+          contractTotal={Number(estimate.total)}
+          invoices={(invoices ?? []) as Invoice[]}
+          changeOrders={(changeOrders ?? []) as ChangeOrder[]}
         />
         <JobCostCard
           estimateId={id}
