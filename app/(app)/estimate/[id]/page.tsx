@@ -7,6 +7,8 @@ import { EstimateShare } from "@/components/estimate-share";
 import { TasksCard } from "@/components/tasks-card";
 import { RelatedWorkCard } from "@/components/related-work-card";
 import { BillingCard } from "@/components/billing-card";
+import { JobPhotosCard } from "@/components/job-photos-card";
+import { signPhotos, type JobPhoto } from "@/app/actions/photos";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
 import type { JobTransaction } from "@/app/actions/finance";
@@ -50,6 +52,16 @@ export default async function EstimatePage({
     .select("*")
     .eq("estimate_id", id)
     .order("created_at");
+
+  const { data: jobPhotos } = await supabase
+    .from("job_photos")
+    .select("*")
+    .eq("estimate_id", id)
+    .order("sort_order")
+    .order("created_at");
+  const signed = await signPhotos((jobPhotos ?? []) as JobPhoto[]);
+  const beforePhotos = signed.filter((p) => p.phase === "before");
+  const afterPhotos = signed.filter((p) => p.phase === "after");
 
   const { data: proposal } = await supabase
     .from("proposals")
@@ -103,6 +115,11 @@ export default async function EstimatePage({
             Number(estimate.demo_cost)
           }
           transactions={(transactions ?? []) as JobTransaction[]}
+        />
+        <JobPhotosCard
+          estimateId={id}
+          before={beforePhotos}
+          after={afterPhotos}
         />
         <RelatedWorkCard trade={estimate.trade} />
         <MarketInsightsCard

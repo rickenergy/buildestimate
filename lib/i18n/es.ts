@@ -228,6 +228,14 @@ export const es: Dict = {
     },
   },
 
+  photos: {
+    title: "Fotos antes y después",
+    before: "Antes",
+    after: "Después",
+    add: "Añadir",
+    empty: "Sin fotos aún",
+  },
+
   alerts: {
     title: "Alarmas e incidentes",
     allClear: "Todo bien — sin incidentes.",

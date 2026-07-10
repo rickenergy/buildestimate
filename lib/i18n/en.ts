@@ -226,6 +226,14 @@ export const en = {
     } as Record<string, string>,
   },
 
+  photos: {
+    title: "Before & after photos",
+    before: "Before",
+    after: "After",
+    add: "Add",
+    empty: "No photos yet",
+  },
+
   alerts: {
     title: "Alarms & incidents",
     allClear: "All clear — no incidents.",
