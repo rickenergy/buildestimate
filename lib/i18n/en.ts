@@ -110,6 +110,22 @@ export const en = {
     coverage: "{located} of {total} estimates carry an area. Add addresses to sharpen this.",
   },
 
+  permits: {
+    title: "Market pulse — building permits",
+    subtitle: "U.S. residential construction demand (national).",
+    permitsTotal: "Permits · all units",
+    permitsSingle: "Permits · single-family",
+    startsTotal: "Housing starts",
+    unit: "K",
+    yoy: "vs last yr",
+    unavailable: "Census data unavailable right now.",
+    source: "Source: U.S. Census Bureau — New Residential Construction, seasonally adjusted",
+    updated: "Updated",
+    needsKey:
+      "Add a free Census API key (CENSUS_API_KEY) to show national building-permit trends.",
+    getKey: "Get a free Census key →",
+  },
+
   wizard: {
     tabGuided: "Guided",
     tabQuick: "Quick",

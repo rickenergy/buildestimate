@@ -112,6 +112,22 @@ export const es: Dict = {
     coverage: "{located} de {total} presupuestos tienen zona. Agrega direcciones para afinar esto.",
   },
 
+  permits: {
+    title: "Pulso del mercado — permisos de construcción",
+    subtitle: "Demanda de construcción residencial en EE. UU. (nacional).",
+    permitsTotal: "Permisos · todas las unidades",
+    permitsSingle: "Permisos · vivienda unifamiliar",
+    startsTotal: "Inicios de vivienda",
+    unit: "K",
+    yoy: "vs año ant.",
+    unavailable: "Datos del Census no disponibles ahora.",
+    source: "Fuente: U.S. Census Bureau — Nueva Construcción Residencial, ajustado estacionalmente",
+    updated: "Actualizado",
+    needsKey:
+      "Agrega una clave gratuita del Census (CENSUS_API_KEY) para ver las tendencias nacionales de permisos.",
+    getKey: "Obtener clave gratuita del Census →",
+  },
+
   wizard: {
     tabGuided: "Guiado",
     tabQuick: "Rápido",

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
 import { getDemandReport } from "@/app/actions/demand";
+import { getPermitPulse } from "@/lib/permits";
+import { PermitPulseCard } from "@/components/permit-pulse-card";
 import { StageBars } from "@/components/charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
@@ -21,7 +23,7 @@ export default async function DemandPage() {
   const t = getDict(lang);
   const d = t.demand;
 
-  const report = await getDemandReport();
+  const [report, permitPulse] = await Promise.all([getDemandReport(), getPermitPulse()]);
   const money = (n: number) => formatMoney(n, lang);
   const tradeName = (tr: string) => t.trades[tr] ?? tr;
 
@@ -38,6 +40,8 @@ export default async function DemandPage() {
         <h1 className="text-xl font-semibold">{d.title}</h1>
         <p className="text-sm text-muted-foreground">{d.subtitle}</p>
       </header>
+
+      <PermitPulseCard pulse={permitPulse} />
 
       {report.locatedCount === 0 ? (
         <Card>

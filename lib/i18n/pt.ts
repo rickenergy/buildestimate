@@ -112,6 +112,22 @@ export const pt: Dict = {
     coverage: "{located} de {total} orçamentos têm área. Adicione endereços para afinar isto.",
   },
 
+  permits: {
+    title: "Pulso do mercado — alvarás de construção",
+    subtitle: "Demanda de construção residencial nos EUA (nacional).",
+    permitsTotal: "Alvarás · todas as unidades",
+    permitsSingle: "Alvarás · casa unifamiliar",
+    startsTotal: "Obras iniciadas",
+    unit: "K",
+    yoy: "vs ano ant.",
+    unavailable: "Dados do Census indisponíveis agora.",
+    source: "Fonte: U.S. Census Bureau — Nova Construção Residencial, ajustado sazonalmente",
+    updated: "Atualizado",
+    needsKey:
+      "Adicione uma chave grátis do Census (CENSUS_API_KEY) para ver as tendências nacionais de alvarás.",
+    getKey: "Obter chave grátis do Census →",
+  },
+
   wizard: {
     tabGuided: "Guiado",
     tabQuick: "Rápido",
