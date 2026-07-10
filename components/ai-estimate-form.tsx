@@ -20,7 +20,10 @@ import {
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import { aiDraftEstimate, acceptAiDraft, type AiDraft } from "@/app/actions/ai-estimate";
+import { improveDescription } from "@/app/actions/improve-description";
 import { ProfitProtectionCard } from "@/components/profit-protection-card";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { AreaMeasures } from "@/components/area-measures";
 import { locationIndex } from "@/lib/takeoff/location";
 import { TRADES, type Trade } from "@/lib/types";
 import {
@@ -79,6 +82,7 @@ export function AiEstimateForm({ minMarginPct }: { minMarginPct: number }) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [draft, setDraft] = useState<AiDraft | null>(null);
   const [needsKey, setNeedsKey] = useState(false);
+  const [improving, setImproving] = useState(false);
 
   const locIdx = locationIndex(location);
   const money = (n: number) => formatMoney(n, lang);
@@ -90,6 +94,19 @@ export function AiEstimateForm({ minMarginPct }: { minMarginPct: number }) {
     const resized = await Promise.all(list.map(resizeImage));
     setPhotos((prev) => [...prev, ...resized]);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function improve() {
+    if (!description.trim() || improving) return;
+    setImproving(true);
+    try {
+      const res = await improveDescription(trade, description);
+      if (res.ok && res.text) setDescription(res.text);
+      else if (res.needsKey) setNeedsKey(true);
+      else if (res.error && res.error !== "empty") toast.error(res.error);
+    } finally {
+      setImproving(false);
+    }
   }
 
   function generate() {
@@ -281,11 +298,7 @@ export function AiEstimateForm({ minMarginPct }: { minMarginPct: number }) {
             <Label className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5 text-primary" /> {t.wizard.locationLabel}
             </Label>
-            <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder={t.wizard.locationPlaceholder}
-            />
+            <AddressAutocomplete value={location} onChange={(full) => setLocation(full)} />
             {locIdx.label && (
               <p className="text-xs font-medium text-primary">
                 {locIdx.label} · {t.wizard.costIndex} ×{locIdx.factor.toFixed(2)}
@@ -294,7 +307,24 @@ export function AiEstimateForm({ minMarginPct }: { minMarginPct: number }) {
           </div>
 
           <div className="grid gap-1.5">
-            <Label>{t.ai.description}</Label>
+            <div className="flex items-center justify-between">
+              <Label>{t.ai.description}</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs text-primary"
+                disabled={improving || !description.trim()}
+                onClick={improve}
+              >
+                {improving ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1 h-3.5 w-3.5" />
+                )}
+                {t.ai.improve}
+              </Button>
+            </div>
             <Textarea
               rows={3}
               value={description}
@@ -305,11 +335,7 @@ export function AiEstimateForm({ minMarginPct }: { minMarginPct: number }) {
 
           <div className="grid gap-1.5">
             <Label>{t.ai.measurements}</Label>
-            <Input
-              value={measurements}
-              onChange={(e) => setMeasurements(e.target.value)}
-              placeholder={t.ai.measurementsPlaceholder}
-            />
+            <AreaMeasures photoCount={photos.length} onChange={(summary) => setMeasurements(summary)} />
           </div>
 
           {/* photos */}
