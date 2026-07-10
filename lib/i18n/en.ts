@@ -92,6 +92,24 @@ export const en = {
     check: "Worth checking",
   },
 
+  demand: {
+    title: "Demand by area",
+    subtitle: "Where your jobs come from and what sells — your own data, growing with every estimate.",
+    emptyTitle: "No location data yet",
+    emptyBody: "Add the property address on estimates and this map fills in: which ZIPs and trades bring the most work, and where you win.",
+    emptyCta: "Create an estimate",
+    topArea: "Hottest area:",
+    jobs: "jobs",
+    winRate: "win rate",
+    byArea: "Top areas by value",
+    byAreaHint: "Job count · total quoted value per ZIP / city.",
+    byTrade: "Top trades by value",
+    byTradeHint: "What sells most across all areas.",
+    winByArea: "Win rate by area",
+    noDecided: "No won/lost decisions yet — win rate appears once estimates are approved or lost.",
+    coverage: "{located} of {total} estimates carry an area. Add addresses to sharpen this.",
+  },
+
   wizard: {
     tabGuided: "Guided",
     tabQuick: "Quick",

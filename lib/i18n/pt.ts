@@ -94,6 +94,24 @@ export const pt: Dict = {
     check: "Vale verificar",
   },
 
+  demand: {
+    title: "Demanda por área",
+    subtitle: "De onde vêm os trabalhos e o que vende — seus próprios dados, crescendo a cada orçamento.",
+    emptyTitle: "Ainda sem dados de localização",
+    emptyBody: "Coloque o endereço do imóvel nos orçamentos e este mapa se preenche: quais ZIPs e serviços dão mais trabalho, e onde você fecha.",
+    emptyCta: "Criar orçamento",
+    topArea: "Área mais quente:",
+    jobs: "trabalhos",
+    winRate: "conversão",
+    byArea: "Top áreas por valor",
+    byAreaHint: "Nº de trabalhos · valor total orçado por ZIP / cidade.",
+    byTrade: "Top serviços por valor",
+    byTradeHint: "O que mais vende em todas as áreas.",
+    winByArea: "Conversão por área",
+    noDecided: "Ainda sem ganhos/perdas — a conversão aparece quando orçamentos forem aprovados ou perdidos.",
+    coverage: "{located} de {total} orçamentos têm área. Adicione endereços para afinar isto.",
+  },
+
   wizard: {
     tabGuided: "Guiado",
     tabQuick: "Rápido",

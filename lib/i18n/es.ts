@@ -94,6 +94,24 @@ export const es: Dict = {
     check: "Vale revisar",
   },
 
+  demand: {
+    title: "Demanda por zona",
+    subtitle: "De dónde vienen los trabajos y qué se vende — tus propios datos, creciendo con cada presupuesto.",
+    emptyTitle: "Aún sin datos de ubicación",
+    emptyBody: "Agrega la dirección en los presupuestos y este mapa se llena: qué ZIP y oficios traen más trabajo, y dónde ganas.",
+    emptyCta: "Crear presupuesto",
+    topArea: "Zona más caliente:",
+    jobs: "trabajos",
+    winRate: "conversión",
+    byArea: "Top zonas por valor",
+    byAreaHint: "Nº de trabajos · valor total cotizado por ZIP / ciudad.",
+    byTrade: "Top oficios por valor",
+    byTradeHint: "Lo que más se vende en todas las zonas.",
+    winByArea: "Conversión por zona",
+    noDecided: "Aún sin ganados/perdidos — la conversión aparece cuando los presupuestos se aprueban o pierden.",
+    coverage: "{located} de {total} presupuestos tienen zona. Agrega direcciones para afinar esto.",
+  },
+
   wizard: {
     tabGuided: "Guiado",
     tabQuick: "Rápido",

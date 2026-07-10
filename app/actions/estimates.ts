@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { computeTakeoff, computeTotals } from "@/lib/takeoff";
 import { locationIndex, applyLocationFactor } from "@/lib/takeoff/location";
+import { parseUsAddress } from "@/lib/geo";
 import { loadPrices } from "@/lib/prices-server";
 import type { ComputedItem, EstimateTotals, TakeoffInput, TakeoffResult } from "@/lib/takeoff/types";
 import type { ItemKind } from "@/lib/types";
@@ -209,6 +210,7 @@ export async function saveEstimate(payload: SaveEstimatePayload) {
       quality_tier: input.quality_tier ?? "standard",
       conditions: input.conditions ?? {},
       location: input.location ?? null,
+      ...parseUsAddress(input.location),
       start_timeframe: input.start_timeframe ?? null,
       material_cost: takeoff.material_cost,
       labor_cost: takeoff.labor_cost,

@@ -19,6 +19,7 @@ import {
   Trophy,
   FileClock,
   HardHat,
+  MapPin,
   BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,16 @@ export function HomeDashboard({ data }: { data: HomeData }) {
           <Plus className="mr-1 h-5 w-5" /> {t.dashboard.newEstimate}
         </Link>
       </Button>
+
+      <Link
+        href="/demand"
+        className="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+      >
+        <span className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-primary" /> {t.demand.title}
+        </span>
+        <span className="text-muted-foreground">→</span>
+      </Link>
 
       {/* hero tiles */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
