@@ -29,6 +29,8 @@ export interface TakeoffInput {
   quality_tier?: QualityTier;
   include_baseboard?: boolean;
   include_ceiling?: boolean;
+  egress_windows?: number; // finish basement: egress wells to cut (1 per sleeping room)
+  include_bathroom?: boolean; // finish basement: below-slab bath/wet-bar rough-in
   location?: string;
   start_timeframe?: string;
   client_name?: string;

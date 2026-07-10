@@ -9,6 +9,7 @@ import { buildTile } from "./tile";
 import { buildFraming } from "./framing";
 import { buildTrim } from "./trim";
 import { buildHandyman } from "./handyman";
+import { buildFinishBasement } from "./basement";
 import { buildRoofing, buildCleaning, buildGeneric, buildSiding, buildConcrete } from "./generic";
 import type { PriceEntry, TakeoffInput, TakeoffResult } from "./types";
 
@@ -59,6 +60,9 @@ export function computeTakeoff(input: TakeoffInput, prices: PriceEntry[]): Takeo
       break;
     case "cleaning":
       buildCleaning(ctx);
+      break;
+    case "finish_basement":
+      buildFinishBasement(ctx);
       break;
     default:
       buildGeneric(ctx, trade);

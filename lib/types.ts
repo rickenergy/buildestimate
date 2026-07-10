@@ -135,6 +135,7 @@ export const TRADES = [
   "remodeling",
   "landscaping",
   "cleaning",
+  "finish_basement",
   "handyman",
 ] as const;
 

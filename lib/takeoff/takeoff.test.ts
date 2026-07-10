@@ -215,3 +215,41 @@ describe("concrete slab depth", () => {
     expect(six.items.some((i) => i.description.includes('6"'))).toBe(true);
   });
 });
+
+describe("finish basement composite", () => {
+  const base = computeTakeoff(
+    { trade: "finish_basement", areas: [{ length_ft: 30, width_ft: 20 }], wall_height_ft: 8, doors: 2 },
+    []
+  );
+
+  it("assembles the full code scope (moisture, framing, insulation, electrical, drywall, floor, permit)", () => {
+    const has = (kw: string) => base.items.some((i) => i.description.toLowerCase().includes(kw));
+    expect(has("moisture")).toBe(true);
+    expect(has("framing")).toBe(true);
+    expect(has("insulation")).toBe(true);
+    expect(has("electrical")).toBe(true);
+    expect(has("drywall")).toBe(true);
+    expect(has("flooring")).toBe(true);
+    expect(has("permit")).toBe(true);
+    expect(base.material_cost + base.labor_cost).toBeGreaterThan(0);
+  });
+
+  it("egress windows are line items only when requested", () => {
+    const withEgress = computeTakeoff(
+      { trade: "finish_basement", areas: [{ sqft: 600 }], wall_height_ft: 8, egress_windows: 2 },
+      []
+    );
+    const egressLines = withEgress.items.filter((i) => i.description.toLowerCase().includes("egress"));
+    expect(egressLines.length).toBeGreaterThan(0);
+    expect(egressLines[0].qty).toBe(2);
+    expect(base.items.some((i) => i.description.toLowerCase().includes("egress"))).toBe(false);
+  });
+
+  it("bathroom rough-in adds cost only when flagged", () => {
+    const withBath = computeTakeoff(
+      { trade: "finish_basement", areas: [{ sqft: 600 }], include_bathroom: true },
+      []
+    );
+    expect(withBath.items.some((i) => i.description.toLowerCase().includes("bathroom"))).toBe(true);
+  });
+});

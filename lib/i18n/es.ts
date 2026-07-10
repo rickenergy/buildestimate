@@ -42,6 +42,7 @@ export const es: Dict = {
     remodeling: "Remodelación",
     landscaping: "Jardinería",
     cleaning: "Limpieza",
+    finish_basement: "Acabado de sótano",
     handyman: "Mantenimiento",
   },
 
@@ -81,6 +82,16 @@ export const es: Dict = {
     depthLabel: "Espesor de losa",
     doors: "Puertas",
     windows: "Ventanas",
+    egress: "Ventanas de emergencia (1 por dormitorio — código)",
+    bathroom: "Incluir rough-in de baño / wet-bar",
+    basementNote: "Alcance por código: techo 2,13m, salida de emergencia, aislamiento R-15, GFCI/AFCI, barrera de humedad. Resuelva el agua antes de terminar.",
+  },
+
+  related: {
+    title: "Trabajos relacionados a proponer",
+    subtitle: "Una solicitud suele esconder un trabajo mayor. Plantéalos al cliente.",
+    often: "Suele ir junto",
+    check: "Vale revisar",
   },
 
   wizard: {

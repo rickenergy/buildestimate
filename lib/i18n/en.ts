@@ -40,6 +40,7 @@ export const en = {
     remodeling: "Remodeling",
     landscaping: "Landscaping",
     cleaning: "Cleaning",
+    finish_basement: "Finish basement",
     handyman: "Handyman",
   } as Record<string, string>,
 
@@ -79,6 +80,16 @@ export const en = {
     depthLabel: "Slab thickness",
     doors: "Doors",
     windows: "Windows",
+    egress: "Egress windows (1 per bedroom — code)",
+    bathroom: "Include a bathroom / wet-bar rough-in",
+    basementNote: "Code-driven scope: 7ft ceiling, egress, R-15 insulation, GFCI/AFCI, moisture barrier. Fix any water before finishing.",
+  },
+
+  related: {
+    title: "Related work to propose",
+    subtitle: "One request usually hides a bigger job. Raise these with the client.",
+    often: "Usually bundled",
+    check: "Worth checking",
   },
 
   wizard: {

@@ -5,6 +5,7 @@ import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
 import { EstimateShare } from "@/components/estimate-share";
 import { TasksCard } from "@/components/tasks-card";
+import { RelatedWorkCard } from "@/components/related-work-card";
 import { BillingCard } from "@/components/billing-card";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
@@ -103,6 +104,7 @@ export default async function EstimatePage({
           }
           transactions={(transactions ?? []) as JobTransaction[]}
         />
+        <RelatedWorkCard trade={estimate.trade} />
         <MarketInsightsCard
           estimateId={id}
           initial={(estimate.market_insights as MarketInsights | null) ?? null}

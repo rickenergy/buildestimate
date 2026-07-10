@@ -60,6 +60,8 @@ export function QuickEstimateForm() {
   const [depth, setDepth] = useState(4);
   const [doors, setDoors] = useState("");
   const [windows, setWindows] = useState("");
+  const [egress, setEgress] = useState("");
+  const [bathroom, setBathroom] = useState(false);
   const [tier, setTier] = useState<QualityTier>("standard");
   const [demo, setDemo] = useState(false);
   const [prep, setPrep] = useState(false);
@@ -138,6 +140,10 @@ export function QuickEstimateForm() {
       input.windows = Number(windows) || 0;
     }
     if (cfg.depth) input.slab_depth_in = depth;
+    if (trade === "finish_basement") {
+      input.egress_windows = Number(egress) || 0;
+      input.include_bathroom = bathroom;
+    }
 
     input.title = title.trim() || `${t.trades[trade] ?? trade} — ${label}`;
 
@@ -371,6 +377,34 @@ export function QuickEstimateForm() {
                     onChange={(e) => setWindows(e.target.value)}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* finish basement — code-driven extras */}
+            {trade === "finish_basement" && (
+              <div className="grid gap-3">
+                <div className="grid gap-1">
+                  <Label className="text-xs text-muted-foreground">{t.measure.egress}</Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={egress}
+                    onChange={(e) => setEgress(e.target.value)}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={bathroom}
+                    onChange={(e) => setBathroom(e.target.checked)}
+                  />
+                  {t.measure.bathroom}
+                </label>
+                <p className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                  {t.measure.basementNote}
+                </p>
               </div>
             )}
           </CardContent>

@@ -42,6 +42,7 @@ export const pt: Dict = {
     remodeling: "Reforma",
     landscaping: "Paisagismo",
     cleaning: "Limpeza",
+    finish_basement: "Acabamento de porão",
     handyman: "Serviços gerais",
   },
 
@@ -81,6 +82,16 @@ export const pt: Dict = {
     depthLabel: "Espessura da laje",
     doors: "Portas",
     windows: "Janelas",
+    egress: "Janelas de emergência (1 por quarto — código)",
+    bathroom: "Incluir rough-in de banheiro / wet-bar",
+    basementNote: "Escopo por código: pé-direito 2,13m, saída de emergência, isolamento R-15, GFCI/AFCI, barreira de umidade. Resolva infiltração antes de acabar.",
+  },
+
+  related: {
+    title: "Trabalhos relacionados a propor",
+    subtitle: "Um pedido costuma esconder um serviço maior. Leve estes ao cliente.",
+    often: "Geralmente junto",
+    check: "Vale verificar",
   },
 
   wizard: {

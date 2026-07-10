@@ -30,6 +30,7 @@ export const TRADE_MEASURE: Record<Trade, TradeMeasure> = {
   landscaping: { modes: ["area", "linear"], primary: "area" },
   cleaning: { modes: ["area"], primary: "area" },
   remodeling: { modes: ["area", "wall"], primary: "area" },
+  finish_basement: { modes: ["area"], primary: "area", openings: true },
   handyman: { modes: ["area"], primary: "area" },
 };
 
