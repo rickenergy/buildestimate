@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EstimateStatusBadge } from "@/components/status-badge";
 import { CashLineChart, MonthlyBars, StageBars } from "@/components/charts";
 import { TrafficLight } from "@/components/traffic-light";
+import { InfoHint } from "@/components/info-hint";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import type { Light } from "@/lib/alerts";
@@ -106,6 +107,7 @@ export function HomeDashboard({ data }: { data: HomeData }) {
           icon={<Layers className="h-4 w-4 text-primary" />}
           label={t.home.pipeline}
           value={money(data.pipelineValue)}
+          hintId="pipeline"
         />
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -113,6 +115,7 @@ export function HomeDashboard({ data }: { data: HomeData }) {
           icon={<Trophy className="h-4 w-4 text-primary" />}
           label={t.home.winRate}
           value={data.winRate === null ? "—" : `${data.winRate}%`}
+          hintId="win_rate"
         />
         <Tile
           icon={<FileClock className="h-4 w-4 text-amber-500" />}
@@ -204,6 +207,7 @@ function Tile({
   trend,
   danger,
   badge,
+  hintId,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -211,6 +215,7 @@ function Tile({
   trend?: number | null;
   danger?: boolean;
   badge?: React.ReactNode;
+  hintId?: string;
 }) {
   return (
     <Card>
@@ -237,7 +242,10 @@ function Tile({
         <span className={cn("truncate text-base font-bold", danger && "text-red-500")}>
           {value}
         </span>
-        <span className="truncate text-[10px] uppercase text-muted-foreground">{label}</span>
+        <span className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground">
+          <span className="truncate">{label}</span>
+          {hintId && <InfoHint id={hintId} className="shrink-0" />}
+        </span>
       </CardContent>
     </Card>
   );
