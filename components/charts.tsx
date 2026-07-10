@@ -154,3 +154,35 @@ export function StageBars({
     </div>
   );
 }
+
+/** Vertical monthly bars — single hue, 4px rounded tops, value labels. */
+export function MonthlyBars({
+  data,
+  formatValue,
+}: {
+  data: { label: string; value: number }[];
+  formatValue: (n: number) => string;
+}) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div className="flex h-40 items-end justify-between gap-2">
+      {data.map((d) => (
+        <div key={d.label} className="flex flex-1 flex-col items-center gap-1">
+          <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+            {d.value > 0 ? formatValue(d.value) : ""}
+          </span>
+          <div className="flex w-full flex-1 items-end">
+            <div
+              className="w-full rounded-t"
+              style={{
+                height: `${Math.max(2, (d.value / max) * 100)}%`,
+                background: "var(--chart-income)",
+              }}
+            />
+          </div>
+          <span className="text-[10px] text-muted-foreground">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}

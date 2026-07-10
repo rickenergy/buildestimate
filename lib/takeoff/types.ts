@@ -23,6 +23,7 @@ export interface TakeoffInput {
   windows?: number;
   doors?: number;
   linear_feet?: number; // fences, trim-only jobs
+  slab_depth_in?: number; // concrete slab thickness (default 4")
   conditions?: TakeoffConditions;
   material_name?: string;
   quality_tier?: QualityTier;

@@ -204,3 +204,14 @@ describe("concrete takeoff", () => {
     expect(result.items.some((i) => i.description.includes("mesh"))).toBe(true);
   });
 });
+
+describe("concrete slab depth", () => {
+  it("6in slab costs ~1.5x the 4in material and more cubic yards", () => {
+    const four = computeTakeoff({ trade: "concrete", areas: [{ sqft: 400 }], slab_depth_in: 4 }, []);
+    const six = computeTakeoff({ trade: "concrete", areas: [{ sqft: 400 }], slab_depth_in: 6 }, []);
+    const slab4 = four.items.find((i) => i.description.includes("slab") && i.kind === "material");
+    const slab6 = six.items.find((i) => i.description.includes("slab") && i.kind === "material");
+    expect(slab6!.unit_cost).toBeCloseTo(slab4!.unit_cost * 1.5, 1);
+    expect(six.items.some((i) => i.description.includes('6"'))).toBe(true);
+  });
+});

@@ -70,6 +70,19 @@ export const es: Dict = {
     needArea: "Ingresa al menos una medida de área",
   },
 
+  measure: {
+    title: "Medidas",
+    mode: { area: "Área", wall: "Área de pared", linear: "Pies lineales", footprint: "Proyección" },
+    linearFeet: "Pies lineales (cerca, zócalo…)",
+    needLinear: "Ingresa los pies lineales",
+    footprintHint: "Ingresa la proyección del techo (planta); la pendiente se aplica automáticamente.",
+    pitchLabel: "Pendiente del techo",
+    pitch: { flat: "Plano", low: "Baja", medium: "Media", steep: "Empinada" },
+    depthLabel: "Espesor de losa",
+    doors: "Puertas",
+    windows: "Ventanas",
+  },
+
   wizard: {
     tabGuided: "Guiado",
     tabQuick: "Rápido",
@@ -325,6 +338,21 @@ export const es: Dict = {
     actualSpent: "Gasto real",
     projectedProfit: "Ganancia proyectada",
     realProfit: "Ganancia real hasta ahora",
+  },
+
+  home: {
+    revenueMonth: "Ingresos (mes)",
+    profitMonth: "Ganancia (mes)",
+    cash: "Caja",
+    pipeline: "Pipeline",
+    winRate: "Cierre",
+    outstanding: "Por cobrar",
+    activeJobs: "Trabajos activos",
+    revenueByMonth: "Ingresos por mes",
+    estimatePipeline: "Pipeline de presupuestos",
+    bucketDraft: "Borradores",
+    bucketSent: "Enviados",
+    bucketWon: "Ganados",
   },
 
   market: {

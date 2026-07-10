@@ -70,6 +70,19 @@ export const pt: Dict = {
     needArea: "Informe pelo menos uma medida de área",
   },
 
+  measure: {
+    title: "Medidas",
+    mode: { area: "Área", wall: "Área de parede", linear: "Pés lineares", footprint: "Projeção" },
+    linearFeet: "Pés lineares (cerca, rodapé…)",
+    needLinear: "Informe os pés lineares",
+    footprintHint: "Informe a projeção do telhado (planta baixa); a inclinação é aplicada automaticamente.",
+    pitchLabel: "Inclinação do telhado",
+    pitch: { flat: "Plano", low: "Baixa", medium: "Média", steep: "Íngreme" },
+    depthLabel: "Espessura da laje",
+    doors: "Portas",
+    windows: "Janelas",
+  },
+
   wizard: {
     tabGuided: "Guiado",
     tabQuick: "Rápido",
@@ -325,6 +338,21 @@ export const pt: Dict = {
     actualSpent: "Gasto real",
     projectedProfit: "Lucro projetado",
     realProfit: "Lucro real até agora",
+  },
+
+  home: {
+    revenueMonth: "Receita (mês)",
+    profitMonth: "Lucro (mês)",
+    cash: "Caixa",
+    pipeline: "Pipeline",
+    winRate: "Fechamento",
+    outstanding: "A receber",
+    activeJobs: "Jobs ativos",
+    revenueByMonth: "Receita por mês",
+    estimatePipeline: "Pipeline de orçamentos",
+    bucketDraft: "Rascunhos",
+    bucketSent: "Enviados",
+    bucketWon: "Ganhos",
   },
 
   market: {

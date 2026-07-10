@@ -1,12 +1,18 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { EstimateStatusBadge } from "@/components/status-badge";
-import { Plus, TrendingUp, CircleCheck, Clock } from "lucide-react";
-import type { Estimate, Language } from "@/lib/types";
+import { HomeDashboard, type HomeData } from "@/components/home-dashboard";
+import {
+  buildAlerts,
+  cashSeries,
+  projectLight,
+  type Light,
+  type ProjectLike,
+  type TaskLike,
+} from "@/lib/alerts";
+import type { Language } from "@/lib/types";
+
+const PIPELINE_STATUSES = ["draft", "ai_generated", "ready", "sent", "change_requested"];
+const JOB_STATUSES = ["approved", "job"];
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -14,119 +20,139 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: estimates }] = await Promise.all([
-    supabase.from("profiles").select("full_name, language").eq("id", user!.id).single(),
-    supabase
-      .from("estimates")
-      .select("id, title, trade, status, total, created_at, margin_score")
-      .order("created_at", { ascending: false })
-      .limit(20),
-  ]);
+  const [{ data: profile }, { data: estimates }, { data: tx }, { data: invoices }, { data: tasks }] =
+    await Promise.all([
+      supabase.from("profiles").select("full_name, language").eq("id", user!.id).single(),
+      supabase
+        .from("estimates")
+        .select(
+          "id, title, trade, status, total, created_at, margin_score, est_days, start_date, end_date, material_cost, labor_cost, demo_cost"
+        )
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("job_transactions")
+        .select("kind, amount, occurred_at, estimate_id")
+        .eq("user_id", user!.id),
+      supabase.from("invoices").select("amount, status").eq("user_id", user!.id),
+      supabase.from("job_tasks").select("id, estimate_id, title, status, due_date").eq("user_id", user!.id),
+    ]);
 
   const lang = (profile?.language ?? "en") as Language;
   const t = getDict(lang);
-  const all = (estimates ?? []) as Pick<
-    Estimate,
-    "id" | "title" | "trade" | "status" | "total" | "created_at" | "margin_score"
-  >[];
+  const today = new Date();
 
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-  const thisMonth = all.filter((e) => new Date(e.created_at) >= monthStart);
-  const approvedTotal = thisMonth
-    .filter((e) => e.status === "approved")
-    .reduce((s, e) => s + Number(e.total), 0);
-  const pendingCount = all.filter((e) => ["ready", "sent"].includes(e.status)).length;
-  const approvedCount = thisMonth.filter((e) => e.status === "approved").length;
+  const all = (estimates ?? []).map((e) => ({
+    ...e,
+    total: Number(e.total),
+    material_cost: Number(e.material_cost),
+    labor_cost: Number(e.labor_cost),
+    demo_cost: Number(e.demo_cost),
+  }));
+  const transactions = (tx ?? []).map((x) => ({ ...x, amount: Number(x.amount) }));
+  const taskList = (tasks ?? []) as TaskLike[];
 
-  const firstName = profile?.full_name?.split(" ")[0] || "";
+  // ---- month helpers ----
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const thisKey = monthKey(today);
+  const lastKey = monthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1));
 
-  return (
-    <main className="flex flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">
-            {t.dashboard.greeting}
-            {firstName ? `, ${firstName}` : ""} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground">{t.appName}</p>
-        </div>
-      </header>
+  let revenueMonth = 0;
+  let revenueLast = 0;
+  let expenseMonth = 0;
+  let cashBalance = 0;
+  const monthlyMap = new Map<string, number>();
+  for (let i = 5; i >= 0; i--) {
+    monthlyMap.set(monthKey(new Date(today.getFullYear(), today.getMonth() - i, 1)), 0);
+  }
+  for (const x of transactions) {
+    const k = x.occurred_at.slice(0, 7);
+    if (x.kind === "income") {
+      cashBalance += x.amount;
+      if (k === thisKey) revenueMonth += x.amount;
+      if (k === lastKey) revenueLast += x.amount;
+      if (monthlyMap.has(k)) monthlyMap.set(k, (monthlyMap.get(k) ?? 0) + x.amount);
+    } else {
+      cashBalance -= x.amount;
+      if (k === thisKey) expenseMonth += x.amount;
+    }
+  }
+  const revenueTrend =
+    revenueLast > 0 ? Math.round(((revenueMonth - revenueLast) / revenueLast) * 100) : null;
 
-      <Button asChild size="lg" className="h-14 text-base">
-        <Link href="/estimate/new">
-          <Plus className="mr-1 h-5 w-5" /> {t.dashboard.newEstimate}
-        </Link>
-      </Button>
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthly = [...monthlyMap.entries()].map(([k, v]) => ({
+    label: monthNames[Number(k.slice(5)) - 1],
+    value: Math.round(v),
+  }));
 
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard
-          icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-          label={t.dashboard.thisMonth}
-          value={formatMoney(approvedTotal, lang)}
-        />
-        <StatCard
-          icon={<CircleCheck className="h-4 w-4 text-green-600" />}
-          label={t.dashboard.approved}
-          value={String(approvedCount)}
-        />
-        <StatCard
-          icon={<Clock className="h-4 w-4 text-amber-600" />}
-          label={t.dashboard.pending}
-          value={String(pendingCount)}
-        />
-      </div>
+  // ---- estimate buckets ----
+  const pipelineValue = all
+    .filter((e) => PIPELINE_STATUSES.includes(e.status))
+    .reduce((s, e) => s + e.total, 0);
+  const approvedCount = all.filter((e) => JOB_STATUSES.includes(e.status)).length;
+  const lostCount = all.filter((e) => e.status === "lost").length;
+  const decided = approvedCount + lostCount;
+  const winRate = decided > 0 ? Math.round((approvedCount / decided) * 100) : null;
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-          {t.dashboard.recentEstimates}
-        </h2>
-        {all.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {t.dashboard.noEstimates}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {all.slice(0, 8).map((e) => (
-              <Link key={e.id} href={`/estimate/${e.id}`}>
-                <Card className="transition-colors active:bg-accent">
-                  <CardContent className="flex items-center justify-between gap-2 p-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{e.title}</p>
-                      <p className="text-xs capitalize text-muted-foreground">{e.trade}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="font-semibold">{formatMoney(Number(e.total), lang)}</span>
-                      <EstimateStatusBadge status={e.status} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
-  );
-}
+  const outstanding = (invoices ?? [])
+    .filter((i) => i.status === "unpaid")
+    .reduce((s, i) => s + Number(i.amount), 0);
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col gap-1 p-3">
-        {icon}
-        <span className="truncate text-sm font-bold">{value}</span>
-        <span className="truncate text-[10px] text-muted-foreground">{label}</span>
-      </CardContent>
-    </Card>
-  );
+  const bucketSum = (statuses: string[]) => {
+    const rows = all.filter((e) => statuses.includes(e.status));
+    return { count: rows.length, value: rows.reduce((s, e) => s + e.total, 0) };
+  };
+  const drafts = bucketSum(["draft", "ai_generated"]);
+  const sent = bucketSum(["ready", "sent", "change_requested"]);
+  const won = bucketSum(JOB_STATUSES);
+  const funnel = [
+    { label: t.home.bucketDraft, ...drafts },
+    { label: t.home.bucketSent, ...sent },
+    { label: t.home.bucketWon, ...won },
+  ];
+
+  // ---- active jobs + traffic light ----
+  const activeProjects = all.filter((e) => JOB_STATUSES.includes(e.status)) as ProjectLike[];
+  const spentByProject: Record<string, number> = {};
+  for (const x of transactions) {
+    if (x.kind === "expense" && x.estimate_id) {
+      spentByProject[x.estimate_id] = (spentByProject[x.estimate_id] ?? 0) + x.amount;
+    }
+  }
+  const lightRank = { red: 0, yellow: 1, green: 2 };
+  let worstLight: Light = "green";
+  for (const p of activeProjects) {
+    const l = projectLight(p, taskList, spentByProject[p.id] ?? 0, today);
+    if (lightRank[l] < lightRank[worstLight]) worstLight = l;
+  }
+
+  const alerts = buildAlerts(all as ProjectLike[], taskList, spentByProject, today);
+
+  const data: HomeData = {
+    firstName: profile?.full_name?.split(" ")[0] || "",
+    revenueMonth,
+    revenueTrend,
+    profitMonth: Math.round((revenueMonth - expenseMonth) * 100) / 100,
+    cashBalance: Math.round(cashBalance * 100) / 100,
+    pipelineValue,
+    winRate,
+    outstanding,
+    activeJobs: approvedCount,
+    worstLight,
+    alertsCount: alerts.length,
+    cashSeries: cashSeries(transactions, 60, today),
+    monthly,
+    funnel,
+    recent: all.slice(0, 8).map((e) => ({
+      id: e.id,
+      title: e.title,
+      trade: e.trade,
+      status: e.status,
+      total: e.total,
+    })),
+  };
+
+  return <HomeDashboard data={data} />;
 }

@@ -68,6 +68,19 @@ export const en = {
     needArea: "Enter at least one area dimension",
   },
 
+  measure: {
+    title: "Measurements",
+    mode: { area: "Area", wall: "Wall area", linear: "Linear ft", footprint: "Footprint" } as Record<string, string>,
+    linearFeet: "Linear feet (fence, trim run…)",
+    needLinear: "Enter the linear feet",
+    footprintHint: "Enter the roof footprint (ground plan); pitch is applied automatically.",
+    pitchLabel: "Roof pitch",
+    pitch: { flat: "Flat", low: "Low", medium: "Medium", steep: "Steep" } as Record<string, string>,
+    depthLabel: "Slab thickness",
+    doors: "Doors",
+    windows: "Windows",
+  },
+
   wizard: {
     tabGuided: "Guided",
     tabQuick: "Quick",
@@ -323,6 +336,21 @@ export const en = {
     actualSpent: "Actual spent",
     projectedProfit: "Projected profit",
     realProfit: "Real profit so far",
+  },
+
+  home: {
+    revenueMonth: "Revenue (mo)",
+    profitMonth: "Profit (mo)",
+    cash: "Cash",
+    pipeline: "Pipeline",
+    winRate: "Win rate",
+    outstanding: "Owed to you",
+    activeJobs: "Active jobs",
+    revenueByMonth: "Revenue by month",
+    estimatePipeline: "Estimate pipeline",
+    bucketDraft: "Drafts",
+    bucketSent: "Sent",
+    bucketWon: "Won",
   },
 
   market: {

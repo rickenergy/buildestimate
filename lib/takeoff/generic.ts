@@ -199,15 +199,18 @@ export function buildConcrete(ctx: BuildCtx) {
   });
   ctx.addLine(gravel, "Gravel base", sqft);
 
+  // Slab thickness drives material volume + price (base rate is per 4").
+  const depthIn = input.slab_depth_in && input.slab_depth_in > 0 ? input.slab_depth_in : 4;
+  const depthMult = depthIn / 4;
   const slab = ctx.price("concrete", ["slab"], {
-    name: 'Concrete slab 4" (3000 psi)',
+    name: `Concrete slab ${depthIn}" (3000 psi)`,
     unit: "sqft",
-    material: 3.5,
+    material: 3.5 * depthMult,
     labor: 4.0,
   });
   const slabSqft = withWaste(sqft, waste);
-  const cy = Math.ceil((sqft * (4 / 12)) / 27 / (1 - waste));
-  ctx.addLine(slab, `Concrete slab 4" (${slabSqft} sqft ≈ ${cy} cy)`, slabSqft, {
+  const cy = Math.ceil((sqft * (depthIn / 12)) / 27 / (1 - waste));
+  ctx.addLine(slab, `Concrete slab ${depthIn}" (${slabSqft} sqft ≈ ${cy} cy)`, slabSqft, {
     materialMult: ctx.tierMult,
   });
 
