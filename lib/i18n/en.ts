@@ -112,7 +112,10 @@ export const en = {
 
   permits: {
     title: "Market pulse — building permits",
-    subtitle: "U.S. residential construction demand (national).",
+    subtitle: "U.S. residential construction demand.",
+    national: "United States · national",
+    regionPrefix: "Your region:",
+    regions: { US: "United States", NO: "Northeast", MW: "Midwest", SO: "South", WE: "West" } as Record<string, string>,
     permitsTotal: "Permits · all units",
     permitsSingle: "Permits · single-family",
     startsTotal: "Housing starts",

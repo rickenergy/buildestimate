@@ -91,7 +91,9 @@ export function PermitPulseCard({ pulse }: { pulse: PermitPulse }) {
         <CardTitle className="flex items-center gap-1.5 text-base">
           <Building2 className="h-4 w-4 text-primary" /> {p.title}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">{p.subtitle}</p>
+        <p className="text-sm text-muted-foreground">
+          {pulse.geo === "US" ? p.national : `${p.regionPrefix} ${p.regions[pulse.geo]}`}
+        </p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-3">

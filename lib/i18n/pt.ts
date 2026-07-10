@@ -114,7 +114,10 @@ export const pt: Dict = {
 
   permits: {
     title: "Pulso do mercado — alvarás de construção",
-    subtitle: "Demanda de construção residencial nos EUA (nacional).",
+    subtitle: "Demanda de construção residencial nos EUA.",
+    national: "Estados Unidos · nacional",
+    regionPrefix: "Sua região:",
+    regions: { US: "Estados Unidos", NO: "Nordeste", MW: "Centro-Oeste", SO: "Sul", WE: "Oeste" } as Record<string, string>,
     permitsTotal: "Alvarás · todas as unidades",
     permitsSingle: "Alvarás · casa unifamiliar",
     startsTotal: "Obras iniciadas",

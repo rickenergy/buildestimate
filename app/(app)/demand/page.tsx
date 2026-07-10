@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
 import { getDemandReport } from "@/app/actions/demand";
 import { getPermitPulse } from "@/lib/permits";
+import { regionForState } from "@/lib/census-region";
 import { PermitPulseCard } from "@/components/permit-pulse-card";
 import { StageBars } from "@/components/charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,25 @@ export default async function DemandPage() {
   const t = getDict(lang);
   const d = t.demand;
 
-  const [report, permitPulse] = await Promise.all([getDemandReport(), getPermitPulse()]);
+  // pick the contractor's dominant state → Census region for the market pulse
+  const { data: stateRows } = await supabase
+    .from("estimates")
+    .select("state")
+    .eq("user_id", user!.id)
+    .not("state", "is", null);
+  const stateCounts = new Map<string, number>();
+  for (const row of stateRows ?? []) {
+    const s = (row.state as string | null)?.trim().toUpperCase();
+    if (s) stateCounts.set(s, (stateCounts.get(s) ?? 0) + 1);
+  }
+  const topState =
+    [...stateCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const region = regionForState(topState);
+
+  const [report, permitPulse] = await Promise.all([
+    getDemandReport(),
+    getPermitPulse(region),
+  ]);
   const money = (n: number) => formatMoney(n, lang);
   const tradeName = (tr: string) => t.trades[tr] ?? tr;
 
