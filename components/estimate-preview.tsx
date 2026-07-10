@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useDict, useLang } from "@/components/providers";
+import { useEstimateContext } from "@/components/new-estimate-context";
 import { formatMoney } from "@/lib/format";
 import { saveEstimate } from "@/app/actions/estimates";
 import { Users, CalendarDays, Ruler } from "lucide-react";
@@ -21,6 +22,10 @@ export interface EstimatePayload {
     location?: string;
     start_timeframe?: string;
     client_name?: string;
+    project_id?: string;
+    estimate_type?: "residential" | "commercial";
+    materials_included?: boolean;
+    advisor_answers?: Record<string, unknown>;
   };
   takeoff: TakeoffResult;
   totals: EstimateTotals;
@@ -35,6 +40,7 @@ const SCORE_STYLES: Record<string, string> = {
 export function EstimatePreview({ payload }: { payload: EstimatePayload }) {
   const t = useDict();
   const lang = useLang();
+  const ctx = useEstimateContext();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -52,7 +58,17 @@ export function EstimatePreview({ payload }: { payload: EstimatePayload }) {
 
   function handleSave() {
     startTransition(async () => {
-      const { id } = await saveEstimate(payload);
+      const merged: EstimatePayload = {
+        ...payload,
+        input: {
+          ...payload.input,
+          project_id: ctx.projectId ?? undefined,
+          estimate_type: ctx.estimateType ?? undefined,
+          materials_included: ctx.materialsIncluded ?? undefined,
+          advisor_answers: ctx.advisorAnswers ?? undefined,
+        },
+      };
+      const { id } = await saveEstimate(merged);
       setSaved(true);
       router.push(`/estimate/${id}`);
     });

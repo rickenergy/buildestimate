@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, FileText, Plus, Users, Wallet, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDict } from "@/components/providers";
+import { NewMenu } from "@/components/new-menu";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -13,7 +14,7 @@ export function BottomNav() {
   const items = [
     { href: "/home", label: t.nav.home, icon: Home },
     { href: "/estimates", label: t.nav.estimates, icon: FileText },
-    { href: "/estimate/new", label: t.nav.new, icon: Plus, primary: true },
+    { href: "__new__", label: t.nav.new, icon: Plus, primary: true },
     { href: "/finance", label: t.nav.finance, icon: Wallet },
     { href: "/clients", label: t.nav.clients, icon: Users },
     { href: "/settings", label: t.nav.settings, icon: Settings },
@@ -26,21 +27,7 @@ export function BottomNav() {
           const active =
             pathname.startsWith(href);
           if (primary) {
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="flex flex-col items-center gap-0.5 px-3 py-2"
-                aria-label={label}
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg -mt-5">
-                  <Icon className="h-6 w-6" />
-                </span>
-                <span className="text-[10px] font-medium text-muted-foreground">
-                  {label}
-                </span>
-              </Link>
-            );
+            return <NewMenu key={href} label={label} />;
           }
           return (
             <Link

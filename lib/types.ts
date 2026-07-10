@@ -77,6 +77,31 @@ export interface Estimate {
   market_insights: Record<string, unknown> | null;
   start_date: string | null;
   end_date: string | null;
+  project_id: string | null;
+  estimate_type: EstimateType | null;
+  materials_included: boolean | null;
+  advisor_answers: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EstimateType = "residential" | "commercial";
+
+export type ProjectType = EstimateType | "mixed";
+export type ProjectStatus = "active" | "on_hold" | "done" | "archived";
+
+export interface Project {
+  id: string;
+  user_id: string;
+  client_id: string | null;
+  name: string;
+  description: string | null;
+  project_type: ProjectType;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  status: ProjectStatus;
   created_at: string;
   updated_at: string;
 }

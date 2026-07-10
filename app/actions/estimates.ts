@@ -20,6 +20,10 @@ interface SaveEstimatePayload {
     client_name?: string;
     project_meta?: Record<string, unknown>;
     status?: string;
+    project_id?: string | null;
+    estimate_type?: "residential" | "commercial" | null;
+    materials_included?: boolean | null;
+    advisor_answers?: Record<string, unknown> | null;
   };
   takeoff: TakeoffResult;
   totals: EstimateTotals;
@@ -223,6 +227,10 @@ export async function saveEstimate(payload: SaveEstimatePayload) {
       crew_size: takeoff.crew_size,
       est_days: takeoff.est_days,
       project_meta: input.project_meta ?? null,
+      project_id: input.project_id ?? null,
+      estimate_type: input.estimate_type ?? null,
+      materials_included: input.materials_included ?? null,
+      advisor_answers: input.advisor_answers ?? null,
     })
     .select("id")
     .single();

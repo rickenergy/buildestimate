@@ -74,15 +74,26 @@ export function HomeDashboard({ data }: { data: HomeData }) {
         </Link>
       </Button>
 
-      <Link
-        href="/demand"
-        className="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted"
-      >
-        <span className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" /> {t.demand.title}
-        </span>
-        <span className="text-muted-foreground">→</span>
-      </Link>
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          href="/projects"
+          className="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+        >
+          <span className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" /> {t.newflow.projectsTitle}
+          </span>
+          <span className="text-muted-foreground">→</span>
+        </Link>
+        <Link
+          href="/demand"
+          className="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+        >
+          <span className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" /> {t.demand.title}
+          </span>
+          <span className="text-muted-foreground">→</span>
+        </Link>
+      </div>
 
       {/* hero tiles */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
