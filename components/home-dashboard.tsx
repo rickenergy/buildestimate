@@ -7,6 +7,7 @@ import { EstimateStatusBadge } from "@/components/status-badge";
 import { CashLineChart, MonthlyBars, StageBars } from "@/components/charts";
 import { TrafficLight } from "@/components/traffic-light";
 import { InfoHint } from "@/components/info-hint";
+import { StatTile, SectionLabel, ListRow } from "@/components/ui/primitives";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import type { Light } from "@/lib/alerts";
@@ -48,11 +49,24 @@ export function HomeDashboard({ data }: { data: HomeData }) {
   const lang = useLang();
   const money = (n: number) => formatMoney(n, lang);
 
+  const trendNode = (trend: number | null | undefined) =>
+    trend === undefined || trend === null ? undefined : (
+      <span
+        className={cn(
+          "flex items-center gap-0.5 text-[10px] font-semibold",
+          trend >= 0 ? "text-green-600" : "text-destructive"
+        )}
+      >
+        {trend >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+        {Math.abs(trend)}%
+      </span>
+    );
+
   return (
-    <main className="flex flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">
+    <main className="flex flex-col gap-5 px-4 py-6">
+      <header className="flex items-center justify-between animate-fade-up">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold leading-tight">
             {t.dashboard.greeting}
             {data.firstName ? `, ${data.firstName}` : ""} 👋
           </h1>
@@ -61,14 +75,19 @@ export function HomeDashboard({ data }: { data: HomeData }) {
         {data.alertsCount > 0 && (
           <Link
             href="/finance"
-            className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 dark:bg-red-900 dark:text-red-100"
+            className="press flex shrink-0 items-center gap-1 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive shadow-xs"
           >
             <BellRing className="h-3.5 w-3.5" /> {data.alertsCount}
           </Link>
         )}
       </header>
 
-      <Button asChild size="lg" className="h-14 text-base">
+      <Button
+        asChild
+        size="lg"
+        className="press h-14 animate-fade-up rounded-2xl text-base shadow-md"
+        style={{ ["--i" as string]: 1 }}
+      >
         <Link href="/estimate/new">
           <Plus className="mr-1 h-5 w-5" /> {t.dashboard.newEstimate}
         </Link>
@@ -77,7 +96,7 @@ export function HomeDashboard({ data }: { data: HomeData }) {
       <div className="grid grid-cols-2 gap-2">
         <Link
           href="/projects"
-          className="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+          className="press flex items-center justify-between rounded-2xl bg-card px-4 py-3 text-sm font-medium shadow-xs ring-1 ring-foreground/10 hover:shadow-sm"
         >
           <span className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" /> {t.newflow.projectsTitle}
@@ -86,7 +105,7 @@ export function HomeDashboard({ data }: { data: HomeData }) {
         </Link>
         <Link
           href="/demand"
-          className="flex items-center justify-between rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+          className="press flex items-center justify-between rounded-2xl bg-card px-4 py-3 text-sm font-medium shadow-xs ring-1 ring-foreground/10 hover:shadow-sm"
         >
           <span className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" /> {t.demand.title}
@@ -96,48 +115,61 @@ export function HomeDashboard({ data }: { data: HomeData }) {
       </div>
 
       {/* hero tiles */}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Tile
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <StatTile
+          style={{ ["--i" as string]: 0 }}
           icon={<TrendingUp className="h-4 w-4 text-primary" />}
           label={t.home.revenueMonth}
           value={money(data.revenueMonth)}
-          trend={data.revenueTrend}
+          trailing={trendNode(data.revenueTrend)}
         />
-        <Tile
+        <StatTile
+          style={{ ["--i" as string]: 1 }}
           icon={<PiggyBank className="h-4 w-4 text-primary" />}
           label={t.home.profitMonth}
           value={money(data.profitMonth)}
         />
-        <Tile
+        <StatTile
+          style={{ ["--i" as string]: 2 }}
           icon={<Wallet className="h-4 w-4 text-primary" />}
           label={t.home.cash}
           value={money(data.cashBalance)}
           danger={data.cashBalance < 0}
         />
-        <Tile
+        <StatTile
+          style={{ ["--i" as string]: 3 }}
           icon={<Layers className="h-4 w-4 text-primary" />}
-          label={t.home.pipeline}
+          label={
+            <>
+              {t.home.pipeline} <InfoHint id="pipeline" className="shrink-0" />
+            </>
+          }
           value={money(data.pipelineValue)}
-          hintId="pipeline"
         />
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <Tile
+      <div className="grid grid-cols-3 gap-2.5">
+        <StatTile
+          style={{ ["--i" as string]: 4 }}
           icon={<Trophy className="h-4 w-4 text-primary" />}
-          label={t.home.winRate}
+          label={
+            <>
+              {t.home.winRate} <InfoHint id="win_rate" className="shrink-0" />
+            </>
+          }
           value={data.winRate === null ? "—" : `${data.winRate}%`}
-          hintId="win_rate"
         />
-        <Tile
+        <StatTile
+          style={{ ["--i" as string]: 5 }}
           icon={<FileClock className="h-4 w-4 text-amber-500" />}
           label={t.home.outstanding}
           value={money(data.outstanding)}
         />
-        <Tile
+        <StatTile
+          style={{ ["--i" as string]: 6 }}
           icon={<HardHat className="h-4 w-4 text-primary" />}
           label={t.home.activeJobs}
           value={String(data.activeJobs)}
-          badge={data.activeJobs > 0 ? <TrafficLight light={data.worstLight} compact /> : undefined}
+          trailing={data.activeJobs > 0 ? <TrafficLight light={data.worstLight} compact /> : undefined}
         />
       </div>
 
@@ -178,10 +210,8 @@ export function HomeDashboard({ data }: { data: HomeData }) {
       </Card>
 
       {/* recent */}
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-          {t.dashboard.recentEstimates}
-        </h2>
+      <section className="space-y-2">
+        <SectionLabel>{t.dashboard.recentEstimates}</SectionLabel>
         {data.recent.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {t.dashboard.noEstimates}
@@ -190,74 +220,21 @@ export function HomeDashboard({ data }: { data: HomeData }) {
           <div className="flex flex-col gap-2">
             {data.recent.map((e) => (
               <Link key={e.id} href={`/estimate/${e.id}`}>
-                <Card className="transition-colors active:bg-accent">
-                  <CardContent className="flex items-center justify-between gap-2 p-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{e.title}</p>
-                      <p className="text-xs text-muted-foreground">{t.trades[e.trade] ?? e.trade}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="font-semibold">{money(Number(e.total))}</span>
-                      <EstimateStatusBadge status={e.status} />
-                    </div>
-                  </CardContent>
-                </Card>
+                <ListRow>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{e.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.trades[e.trade] ?? e.trade}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-semibold">{money(Number(e.total))}</span>
+                    <EstimateStatusBadge status={e.status} />
+                  </div>
+                </ListRow>
               </Link>
             ))}
           </div>
         )}
       </section>
     </main>
-  );
-}
-
-function Tile({
-  icon,
-  label,
-  value,
-  trend,
-  danger,
-  badge,
-  hintId,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  trend?: number | null;
-  danger?: boolean;
-  badge?: React.ReactNode;
-  hintId?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col gap-1 p-3">
-        <div className="flex items-center justify-between">
-          {icon}
-          {badge}
-          {trend !== undefined && trend !== null && (
-            <span
-              className={cn(
-                "flex items-center gap-0.5 text-[10px] font-semibold",
-                trend >= 0 ? "text-green-600" : "text-red-500"
-              )}
-            >
-              {trend >= 0 ? (
-                <TrendingUp className="h-3 w-3" />
-              ) : (
-                <TrendingDown className="h-3 w-3" />
-              )}
-              {Math.abs(trend)}%
-            </span>
-          )}
-        </div>
-        <span className={cn("truncate text-base font-bold", danger && "text-red-500")}>
-          {value}
-        </span>
-        <span className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground">
-          <span className="truncate">{label}</span>
-          {hintId && <InfoHint id={hintId} className="shrink-0" />}
-        </span>
-      </CardContent>
-    </Card>
   );
 }

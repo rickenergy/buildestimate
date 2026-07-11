@@ -46,6 +46,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Elevation — soft, brand-tinted shadows (Salesforce-mobile premium) */
+  --shadow-2xs: 0 1px 2px 0 oklch(0.3 0.03 165 / 0.04);
+  --shadow-xs: 0 1px 3px 0 oklch(0.3 0.03 165 / 0.06), 0 1px 2px -1px oklch(0.3 0.03 165 / 0.05);
+  --shadow-sm: 0 2px 8px -2px oklch(0.3 0.03 165 / 0.08), 0 2px 4px -2px oklch(0.3 0.03 165 / 0.05);
+  --shadow-md: 0 8px 24px -6px oklch(0.3 0.03 165 / 0.12), 0 3px 8px -3px oklch(0.3 0.03 165 / 0.07);
+  --shadow-lg: 0 16px 40px -8px oklch(0.3 0.03 165 / 0.16), 0 6px 14px -6px oklch(0.3 0.03 165 / 0.08);
+  --shadow-xl: 0 24px 56px -12px oklch(0.3 0.03 165 / 0.2);
+
+  /* Motion */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :root {
@@ -152,4 +164,94 @@
 .dark {
   --chart-income: #6fcba4;
   --chart-expense: #8faee8;
+}
+
+/* ── Design system: motion + premium surfaces ─────────────────── */
+
+/* Dark mode: shadows carry no light, lean on darker spread */
+.dark {
+  --shadow-2xs: 0 1px 2px 0 oklch(0 0 0 / 0.3);
+  --shadow-xs: 0 1px 3px 0 oklch(0 0 0 / 0.4), 0 1px 2px -1px oklch(0 0 0 / 0.4);
+  --shadow-sm: 0 2px 8px -2px oklch(0 0 0 / 0.45), 0 2px 4px -2px oklch(0 0 0 / 0.4);
+  --shadow-md: 0 8px 24px -6px oklch(0 0 0 / 0.5), 0 3px 8px -3px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.55), 0 6px 14px -6px oklch(0 0 0 / 0.4);
+  --shadow-xl: 0 24px 56px -12px oklch(0 0 0 / 0.6);
+}
+
+@keyframes ds-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ds-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ds-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer utilities {
+  /* Entrance — set --i on children for a stagger cascade */
+  .animate-fade-up {
+    animation: ds-fade-up 0.45s var(--ease-out-quint) both;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  .animate-fade-in {
+    animation: ds-fade-in 0.4s var(--ease-out-quint) both;
+  }
+  .animate-pop {
+    animation: ds-pop 0.3s var(--ease-spring) both;
+  }
+
+  /* Tactile press for interactive cards/tiles/buttons */
+  .press {
+    transition:
+      transform 0.15s var(--ease-out-quint),
+      box-shadow 0.2s var(--ease-out-quint),
+      background-color 0.15s ease;
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* Premium record header: brand-tinted gradient wash */
+  .surface-brand {
+    background:
+      radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%),
+      linear-gradient(160deg, color-mix(in oklab, var(--primary) 10%, var(--card)), var(--card));
+  }
+
+  /* Hide scrollbars on horizontal chip rows */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-pop {
+    animation: none;
+  }
 }
