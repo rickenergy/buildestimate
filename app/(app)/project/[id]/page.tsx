@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EstimateStatusBadge } from "@/components/status-badge";
+import { PageHeader } from "@/components/page-header";
 import { formatMoney } from "@/lib/format";
-import { Home, Building2, Layers, Plus, MapPin, FileText } from "lucide-react";
+import { Home, Building2, Layers, Plus, MapPin, FileText, Pencil } from "lucide-react";
 import type { Project, Estimate } from "@/lib/types";
 
 const TYPE_ICON = { residential: Home, commercial: Building2, mixed: Layers } as const;
@@ -49,43 +50,54 @@ export default async function ProjectPage({
   const newJobType = p.project_type === "mixed" ? "" : `&type=${p.project_type}`;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
-      <header className="space-y-2">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <div className="pb-24">
+      <PageHeader
+        title={p.name}
+        subtitle={nf.projectTypes[p.project_type]}
+        backHref="/projects"
+        action={
+          <Link
+            href={`/project/${p.id}/edit`}
+            aria-label={nf.editProject}
+            className="flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-medium transition hover:bg-muted active:scale-95"
+          >
+            <Pencil className="h-3.5 w-3.5" /> {nf.edit}
+          </Link>
+        }
+      />
+
+      <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
+        {/* record highlight — Salesforce style */}
+        <div className="flex items-center gap-3 rounded-2xl bg-primary/5 p-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
             <Icon className="h-6 w-6" />
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-semibold">{p.name}</h1>
+            <h1 className="truncate text-xl font-bold">{p.name}</h1>
             <p className="text-sm text-muted-foreground">
               {nf.projectTypes[p.project_type]}
               {p.clients?.name ? ` · ${p.clients.name}` : ""}
             </p>
+            {p.address && (
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" /> {p.address}
+              </p>
+            )}
           </div>
         </div>
-        {p.address && (
-          <p className="flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> {p.address}
-          </p>
-        )}
-        {p.description && <p className="text-sm">{p.description}</p>}
-      </header>
+        {p.description && <p className="px-1 text-sm">{p.description}</p>}
 
-      {/* aggregate */}
-      <div className="grid grid-cols-2 gap-2">
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-[10px] uppercase text-muted-foreground">{nf.jobs}</p>
-            <p className="text-lg font-bold">{list.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-[10px] uppercase text-muted-foreground">{nf.contractTotal}</p>
-            <p className="text-lg font-bold">{money(contractTotal)}</p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* aggregate highlights */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border bg-card p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{nf.jobs}</p>
+            <p className="mt-1 text-2xl font-bold">{list.length}</p>
+          </div>
+          <div className="rounded-2xl border bg-card p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{nf.contractTotal}</p>
+            <p className="mt-1 text-2xl font-bold">{money(contractTotal)}</p>
+          </div>
+        </div>
 
       {/* jobs */}
       <Card>
@@ -117,6 +129,7 @@ export default async function ProjectPage({
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

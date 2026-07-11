@@ -11,6 +11,9 @@ export interface CreateProjectInput {
   description?: string;
   project_type: ProjectType;
   address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   client_name?: string;
 }
 
@@ -45,6 +48,7 @@ export async function createProject(input: CreateProjectInput) {
       null;
   }
 
+  const parsed = parseUsAddress(input.address);
   const { data: project, error } = await supabase
     .from("projects")
     .insert({
@@ -54,7 +58,9 @@ export async function createProject(input: CreateProjectInput) {
       description: input.description?.trim() || null,
       project_type: input.project_type,
       address: input.address?.trim() || null,
-      ...parseUsAddress(input.address),
+      city: input.city?.trim() || parsed.city || null,
+      state: input.state?.trim() || parsed.state || null,
+      zip: input.zip?.trim() || parsed.zip || null,
     })
     .select("id")
     .single();
@@ -63,6 +69,58 @@ export async function createProject(input: CreateProjectInput) {
 
   revalidatePath("/projects");
   redirect(`/project/${project.id}`);
+}
+
+/** Update an existing project, then return to its page. */
+export async function updateProject(projectId: string, input: CreateProjectInput) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  if (!input.name.trim()) throw new Error("Name required");
+
+  let clientId: string | null = null;
+  const clientName = input.client_name?.trim();
+  if (clientName) {
+    const { data: existing } = await supabase
+      .from("clients")
+      .select("id")
+      .ilike("name", clientName)
+      .limit(1)
+      .maybeSingle();
+    clientId =
+      existing?.id ??
+      (
+        await supabase
+          .from("clients")
+          .insert({ user_id: user.id, name: clientName })
+          .select("id")
+          .single()
+      ).data?.id ??
+      null;
+  }
+
+  const parsed = parseUsAddress(input.address);
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      client_id: clientId,
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      project_type: input.project_type,
+      address: input.address?.trim() || null,
+      city: input.city?.trim() || parsed.city || null,
+      state: input.state?.trim() || parsed.state || null,
+      zip: input.zip?.trim() || parsed.zip || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", projectId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/projects");
+  revalidatePath(`/project/${projectId}`);
+  redirect(`/project/${projectId}`);
 }
 
 export async function setProjectStatus(projectId: string, status: string) {
