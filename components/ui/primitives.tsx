@@ -64,13 +64,30 @@ export function RecordHighlight({
   );
 }
 
-/** Metric tile: icon row (+optional trend/badge), big value, uppercase label. */
+/** Accent palette for stat tiles — icon chip tint + value color (light+dark). */
+export type Accent = "emerald" | "blue" | "amber" | "violet" | "rose" | "primary";
+
+const ACCENT: Record<Accent, { chip: string; value: string }> = {
+  emerald: { chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", value: "text-emerald-600 dark:text-emerald-400" },
+  blue: { chip: "bg-blue-500/15 text-blue-600 dark:text-blue-400", value: "text-blue-600 dark:text-blue-400" },
+  amber: { chip: "bg-amber-500/15 text-amber-600 dark:text-amber-400", value: "text-amber-600 dark:text-amber-400" },
+  violet: { chip: "bg-violet-500/15 text-violet-600 dark:text-violet-400", value: "text-violet-600 dark:text-violet-400" },
+  rose: { chip: "bg-rose-500/15 text-rose-600 dark:text-rose-400", value: "text-rose-600 dark:text-rose-400" },
+  primary: { chip: "bg-primary/15 text-primary", value: "text-foreground" },
+};
+
+/**
+ * Moxtra-style metric tile: colored icon chip, giant bold value, uppercase
+ * label. `accent` tints the chip; `colorValue` also tints the number.
+ */
 export function StatTile({
   icon,
   label,
   value,
   trailing,
   danger,
+  accent = "primary",
+  colorValue = false,
   className,
   style,
 }: {
@@ -79,27 +96,38 @@ export function StatTile({
   value: React.ReactNode;
   trailing?: React.ReactNode;
   danger?: boolean;
+  accent?: Accent;
+  colorValue?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const a = ACCENT[accent];
   return (
     <div
       style={style}
       className={cn(
-        "animate-fade-up flex flex-col gap-1 rounded-2xl bg-card p-3 shadow-xs ring-1 ring-foreground/10",
+        "animate-fade-up press flex flex-col gap-2 rounded-2xl bg-card p-3.5 shadow-sm ring-1 ring-foreground/10",
         className
       )}
     >
-      {(icon || trailing) && (
-        <div className="flex items-center justify-between">
-          {icon}
-          {trailing}
-        </div>
-      )}
-      <span className={cn("truncate text-lg font-bold leading-tight", danger && "text-destructive")}>
+      <div className="flex items-center justify-between">
+        {icon && (
+          <span className={cn("flex h-8 w-8 items-center justify-center rounded-xl", a.chip)}>
+            {icon}
+          </span>
+        )}
+        {trailing}
+      </div>
+      <span
+        className={cn(
+          "truncate text-2xl font-bold leading-none tracking-tight",
+          colorValue && !danger && a.value,
+          danger && "text-destructive"
+        )}
+      >
         {value}
       </span>
-      <span className="flex items-center gap-1 truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="flex items-center gap-1 truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
     </div>

@@ -85,7 +85,7 @@ export function HomeDashboard({ data }: { data: HomeData }) {
       <Button
         asChild
         size="lg"
-        className="press h-14 animate-fade-up rounded-2xl text-base shadow-md"
+        className="press h-14 animate-fade-up rounded-2xl bg-gradient-to-br from-primary to-primary/75 text-base shadow-lg shadow-primary/25"
         style={{ ["--i" as string]: 1 }}
       >
         <Link href="/estimate/new">
@@ -118,27 +118,33 @@ export function HomeDashboard({ data }: { data: HomeData }) {
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
         <StatTile
           style={{ ["--i" as string]: 0 }}
-          icon={<TrendingUp className="h-4 w-4 text-primary" />}
+          accent="emerald"
+          colorValue
+          icon={<TrendingUp className="h-4 w-4" />}
           label={t.home.revenueMonth}
           value={money(data.revenueMonth)}
           trailing={trendNode(data.revenueTrend)}
         />
         <StatTile
           style={{ ["--i" as string]: 1 }}
-          icon={<PiggyBank className="h-4 w-4 text-primary" />}
+          accent="violet"
+          icon={<PiggyBank className="h-4 w-4" />}
           label={t.home.profitMonth}
           value={money(data.profitMonth)}
         />
         <StatTile
           style={{ ["--i" as string]: 2 }}
-          icon={<Wallet className="h-4 w-4 text-primary" />}
+          accent="blue"
+          colorValue
+          icon={<Wallet className="h-4 w-4" />}
           label={t.home.cash}
           value={money(data.cashBalance)}
           danger={data.cashBalance < 0}
         />
         <StatTile
           style={{ ["--i" as string]: 3 }}
-          icon={<Layers className="h-4 w-4 text-primary" />}
+          accent="primary"
+          icon={<Layers className="h-4 w-4" />}
           label={
             <>
               {t.home.pipeline} <InfoHint id="pipeline" className="shrink-0" />
@@ -150,7 +156,8 @@ export function HomeDashboard({ data }: { data: HomeData }) {
       <div className="grid grid-cols-3 gap-2.5">
         <StatTile
           style={{ ["--i" as string]: 4 }}
-          icon={<Trophy className="h-4 w-4 text-primary" />}
+          accent="amber"
+          icon={<Trophy className="h-4 w-4" />}
           label={
             <>
               {t.home.winRate} <InfoHint id="win_rate" className="shrink-0" />
@@ -160,13 +167,15 @@ export function HomeDashboard({ data }: { data: HomeData }) {
         />
         <StatTile
           style={{ ["--i" as string]: 5 }}
-          icon={<FileClock className="h-4 w-4 text-amber-500" />}
+          accent="rose"
+          icon={<FileClock className="h-4 w-4" />}
           label={t.home.outstanding}
           value={money(data.outstanding)}
         />
         <StatTile
           style={{ ["--i" as string]: 6 }}
-          icon={<HardHat className="h-4 w-4 text-primary" />}
+          accent="primary"
+          icon={<HardHat className="h-4 w-4" />}
           label={t.home.activeJobs}
           value={String(data.activeJobs)}
           trailing={data.activeJobs > 0 ? <TrafficLight light={data.worstLight} compact /> : undefined}
