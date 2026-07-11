@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/select";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
+import { addTransaction } from "@/app/actions/finance";
 import {
-  addTransaction,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   type JobTransaction,
   type TransactionKind,
-} from "@/app/actions/finance";
+} from "@/lib/finance";
 import { ArrowDownCircle, ArrowUpCircle, Loader2, Plus, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 

@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/select";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
+import { addTransaction, deleteTransaction } from "@/app/actions/finance";
 import {
-  addTransaction,
-  deleteTransaction,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   type JobTransaction,
   type TransactionKind,
-} from "@/app/actions/finance";
+} from "@/lib/finance";
 import {
   ArrowDownCircle,
   ArrowUpCircle,

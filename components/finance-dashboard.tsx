@@ -19,7 +19,7 @@ import {
   type ProjectLike,
   type TaskLike,
 } from "@/lib/alerts";
-import type { JobTransaction } from "@/app/actions/finance";
+import type { JobTransaction } from "@/lib/finance";
 import { BellRing, CalendarRange, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 

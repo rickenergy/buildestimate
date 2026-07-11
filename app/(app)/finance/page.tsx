@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { FinanceManager } from "@/components/finance-manager";
 import { FinanceDashboard } from "@/components/finance-dashboard";
-import type { JobTransaction } from "@/app/actions/finance";
+import type { JobTransaction } from "@/lib/finance";
 import type { ProjectLike, TaskLike } from "@/lib/alerts";
 
 export default async function FinancePage() {

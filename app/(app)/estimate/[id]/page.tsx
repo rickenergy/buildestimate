@@ -11,7 +11,7 @@ import { JobPhotosCard } from "@/components/job-photos-card";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
-import type { JobTransaction } from "@/app/actions/finance";
+import type { JobTransaction } from "@/lib/finance";
 import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
 

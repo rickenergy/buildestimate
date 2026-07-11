@@ -2,34 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-export type TransactionKind = "income" | "expense";
-
-export const EXPENSE_CATEGORIES = [
-  "materials",
-  "labor",
-  "fuel",
-  "equipment",
-  "disposal",
-  "permits",
-  "meals",
-  "other",
-] as const;
-
-export const INCOME_CATEGORIES = ["deposit", "progress", "final", "other_income"] as const;
-
-export interface JobTransaction {
-  id: string;
-  user_id: string;
-  estimate_id: string | null;
-  kind: TransactionKind;
-  category: string;
-  description: string | null;
-  amount: number;
-  occurred_at: string;
-  created_at: string;
-  estimates?: { title: string } | null;
-}
+import type { TransactionKind } from "@/lib/finance";
 
 export async function addTransaction(fields: {
   kind: TransactionKind;
