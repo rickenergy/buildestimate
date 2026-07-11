@@ -46,14 +46,14 @@ export default async function ProjectsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-xl font-semibold">{nf.projectsTitle}</h1>
+          <h1 className="text-2xl font-bold">{nf.projectsTitle}</h1>
           <p className="text-sm text-muted-foreground">{nf.projectsSubtitle}</p>
         </div>
         <Link
           href="/project/new"
-          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+          className="press inline-flex items-center gap-1 rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm"
         >
           <FolderPlus className="h-4 w-4" /> {nf.newProject}
         </Link>

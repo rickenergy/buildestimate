@@ -68,8 +68,8 @@ export default async function ProjectPage({
 
       <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
         {/* record highlight — Salesforce style */}
-        <div className="flex items-center gap-3 rounded-2xl bg-primary/5 p-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+        <div className="surface-brand animate-fade-up flex items-center gap-3 rounded-3xl p-4 shadow-sm ring-1 ring-foreground/5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
             <Icon className="h-6 w-6" />
           </span>
           <div className="min-w-0 flex-1">
@@ -89,11 +89,11 @@ export default async function ProjectPage({
 
         {/* aggregate highlights */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border bg-card p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-xs ring-1 ring-foreground/10">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{nf.jobs}</p>
             <p className="mt-1 text-2xl font-bold">{list.length}</p>
           </div>
-          <div className="rounded-2xl border bg-card p-4">
+          <div className="rounded-2xl bg-card p-4 shadow-xs ring-1 ring-foreground/10">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{nf.contractTotal}</p>
             <p className="mt-1 text-2xl font-bold">{money(contractTotal)}</p>
           </div>

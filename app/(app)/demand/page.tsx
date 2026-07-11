@@ -55,8 +55,8 @@ export default async function DemandPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold">{d.title}</h1>
+      <header className="space-y-1 animate-fade-up">
+        <h1 className="text-2xl font-bold">{d.title}</h1>
         <p className="text-sm text-muted-foreground">{d.subtitle}</p>
       </header>
 

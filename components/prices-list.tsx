@@ -36,9 +36,9 @@ export function PricesList({ prices }: { prices: PriceEntry[] }) {
 
   return (
     <main className="flex flex-col gap-4 px-4 py-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t.prices.title}</h1>
-        <Button size="sm" onClick={() => setAdding(true)}>
+      <header className="flex items-center justify-between animate-fade-up">
+        <h1 className="text-2xl font-bold">{t.prices.title}</h1>
+        <Button size="sm" className="press rounded-full shadow-sm" onClick={() => setAdding(true)}>
           <Plus className="mr-1 h-4 w-4" /> {t.prices.add}
         </Button>
       </header>

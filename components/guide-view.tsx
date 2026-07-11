@@ -34,8 +34,8 @@ export function GuideView({ lang }: { lang: GLang }) {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold">{ui.title}</h1>
+      <header className="space-y-1 animate-fade-up">
+        <h1 className="text-2xl font-bold">{ui.title}</h1>
         <p className="text-sm text-muted-foreground">{ui.subtitle}</p>
       </header>
 
