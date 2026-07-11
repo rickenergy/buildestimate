@@ -28,7 +28,7 @@ export default async function EstimatesPage() {
   return (
     <main className="flex flex-col gap-4 px-4 py-6">
       <header className="flex items-center justify-between animate-fade-up">
-        <h1 className="text-2xl font-bold">{t.nav.estimates}</h1>
+        <h1 className="text-xl font-bold">{t.nav.estimates}</h1>
         {rows.length > 0 && (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
             {rows.length}

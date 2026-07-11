@@ -106,13 +106,13 @@ export function StatTile({
     <div
       style={style}
       className={cn(
-        "animate-fade-up press flex flex-col gap-2 rounded-2xl bg-card p-3.5 shadow-sm ring-1 ring-foreground/10",
+        "animate-fade-up press flex flex-col gap-1.5 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-foreground/10",
         className
       )}
     >
       <div className="flex items-center justify-between">
         {icon && (
-          <span className={cn("flex h-8 w-8 items-center justify-center rounded-xl", a.chip)}>
+          <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg", a.chip)}>
             {icon}
           </span>
         )}
@@ -120,7 +120,7 @@ export function StatTile({
       </div>
       <span
         className={cn(
-          "truncate text-2xl font-bold leading-none tracking-tight",
+          "truncate text-lg font-bold leading-tight tracking-tight",
           colorValue && !danger && a.value,
           danger && "text-destructive"
         )}

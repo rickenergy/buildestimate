@@ -66,7 +66,7 @@ export function HomeDashboard({ data }: { data: HomeData }) {
     <main className="flex flex-col gap-5 px-4 py-6">
       <header className="flex items-center justify-between animate-fade-up">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold leading-tight">
+          <h1 className="truncate text-xl font-bold leading-tight">
             {t.dashboard.greeting}
             {data.firstName ? `, ${data.firstName}` : ""} 👋
           </h1>

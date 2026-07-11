@@ -59,7 +59,7 @@ export function SettingsForm({ profile, email }: { profile: Profile; email: stri
   return (
     <main className="flex flex-col gap-4 px-4 py-6">
       <header className="animate-fade-up">
-        <h1 className="text-2xl font-bold">{t.settings.title}</h1>
+        <h1 className="text-xl font-bold">{t.settings.title}</h1>
         <p className="text-xs text-muted-foreground">{email}</p>
       </header>
 

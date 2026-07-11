@@ -48,7 +48,7 @@ export default async function ProjectsPage() {
     <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
       <header className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold">{nf.projectsTitle}</h1>
+          <h1 className="text-xl font-bold">{nf.projectsTitle}</h1>
           <p className="text-sm text-muted-foreground">{nf.projectsSubtitle}</p>
         </div>
         <Link
