@@ -318,6 +318,7 @@ export const en = {
     before: "Before",
     after: "After",
     add: "Add",
+    camera: "Camera",
     empty: "No photos yet",
   },
 

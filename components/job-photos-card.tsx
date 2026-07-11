@@ -144,6 +144,7 @@ function Column({
   t: ReturnType<typeof useDict>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const busy = uploading === phase;
   const full = photos.length >= MAX_PER_PHASE;
 
@@ -164,6 +165,30 @@ function Column({
             e.target.value = "";
           }}
         />
+        {/* camera capture — opens the rear camera directly on phones/tablets */}
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(e) => {
+            onFiles(phase, e.target.files);
+            e.target.value = "";
+          }}
+        />
+        <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1 px-2 text-xs"
+            disabled={busy || full}
+            onClick={() => cameraRef.current?.click()}
+            aria-label={t.photos.camera}
+          >
+            <Camera className="h-3.5 w-3.5" />
+            {t.photos.camera}
+          </Button>
         <Button
           size="sm"
           variant="outline"
@@ -178,6 +203,7 @@ function Column({
           )}
           {t.photos.add}
         </Button>
+        </div>
       </div>
 
       {photos.length === 0 ? (

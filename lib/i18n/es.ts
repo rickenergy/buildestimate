@@ -320,6 +320,7 @@ export const es: Dict = {
     before: "Antes",
     after: "Después",
     add: "Añadir",
+    camera: "Cámara",
     empty: "Sin fotos aún",
   },
 
