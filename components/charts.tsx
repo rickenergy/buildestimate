@@ -58,9 +58,10 @@ export function CashLineChart({
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-labelledby={`${id}-t`}>
-        <title id={`${id}-t`}>
-          {labels.income}: {formatValue(last?.income ?? 0)} · {labels.expense}:{" "}
-          {formatValue(last?.expense ?? 0)}
+        <title id={`${id}-t`} suppressHydrationWarning>
+          {`${labels.income}: ${formatValue(last?.income ?? 0)} · ${labels.expense}: ${formatValue(
+            last?.expense ?? 0
+          )}`}
         </title>
         {gridYs.map((gy) => (
           <line
@@ -87,6 +88,7 @@ export function CashLineChart({
               className="fill-current text-foreground"
               fontSize="11"
               fontWeight="600"
+              suppressHydrationWarning
             >
               {formatValue(last.income)}
             </text>
@@ -96,6 +98,7 @@ export function CashLineChart({
               className="fill-current text-foreground"
               fontSize="11"
               fontWeight="600"
+              suppressHydrationWarning
             >
               {formatValue(last.expense)}
             </text>
