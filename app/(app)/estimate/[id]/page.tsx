@@ -11,6 +11,7 @@ import { JobPhotosCard } from "@/components/job-photos-card";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
+import { DeleteEstimateButton } from "@/components/delete-estimate-button";
 import type { JobTransaction } from "@/lib/finance";
 import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
@@ -126,6 +127,7 @@ export default async function EstimatePage({
           estimateId={id}
           initial={(estimate.market_insights as MarketInsights | null) ?? null}
         />
+        <DeleteEstimateButton estimateId={id} />
       </div>
     </>
   );
