@@ -14,6 +14,13 @@ import {
 import { Sparkles, Loader2, RefreshCw, KeyRound, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const REGION_L: Record<string, string> = { en: "region", pt: "região", es: "región" };
+const FLOOR_L: Record<string, string> = {
+  en: "Floor (cost+margin)",
+  pt: "Piso (custo+margem)",
+  es: "Piso (costo+margen)",
+};
+
 interface Props {
   estimateId: string;
   initial: Insights | null;
@@ -144,6 +151,31 @@ export function MarketInsightsCard({ estimateId, initial }: Props) {
             ▌ {t.market.ourPrice}: {formatMoney(insights.our_total, lang)}
           </p>
         </section>
+
+        {/* Unit economics — anchored on our real cost engine */}
+        {insights.our_unit_price != null && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-muted/50 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">$/sqft</p>
+              <p className="text-sm font-bold">
+                {formatMoney(insights.our_unit_price, lang)}
+                {insights.region_unit_price != null && (
+                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                    · {formatMoney(insights.region_unit_price, lang)} {REGION_L[lang] ?? REGION_L.en}
+                  </span>
+                )}
+              </p>
+            </div>
+            {insights.cost_floor != null && (
+              <div className="rounded-xl bg-muted/50 p-2.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {FLOOR_L[lang] ?? FLOOR_L.en}
+                </p>
+                <p className="text-sm font-bold">{formatMoney(insights.cost_floor, lang)}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <Separator />
 
