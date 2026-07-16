@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { TransactionKind } from "@/lib/finance";
+import type { Disposition, PurchaseType, TransactionKind } from "@/lib/finance";
 
 export async function addTransaction(fields: {
   kind: TransactionKind;
@@ -11,6 +11,16 @@ export async function addTransaction(fields: {
   description?: string;
   occurred_at?: string;
   estimate_id?: string | null;
+  // cadastro fields
+  purchase_type?: PurchaseType | null;
+  vendor?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  photo_path?: string | null;
+  invoice_path?: string | null;
+  disposition?: Disposition | null;
+  waste_value?: number | null;
+  reused_estimate_id?: string | null;
 }) {
   const supabase = await createClient();
   const {
@@ -27,6 +37,15 @@ export async function addTransaction(fields: {
     description: fields.description?.trim() || null,
     amount: fields.amount,
     occurred_at: fields.occurred_at || new Date().toISOString().slice(0, 10),
+    purchase_type: fields.purchase_type ?? null,
+    vendor: fields.vendor?.trim() || null,
+    quantity: fields.quantity ?? null,
+    unit: fields.unit?.trim() || null,
+    photo_path: fields.photo_path ?? null,
+    invoice_path: fields.invoice_path ?? null,
+    disposition: fields.disposition ?? null,
+    waste_value: fields.waste_value ?? null,
+    reused_estimate_id: fields.reused_estimate_id || null,
   });
   if (error) throw new Error(error.message);
 

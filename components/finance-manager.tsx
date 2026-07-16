@@ -1,33 +1,27 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
-import { addTransaction, deleteTransaction } from "@/app/actions/finance";
+import { deleteTransaction } from "@/app/actions/finance";
 import {
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
+  LOSS_DISPOSITIONS,
+  type Disposition,
   type JobTransaction,
-  type TransactionKind,
 } from "@/lib/finance";
+import { TransactionCadastro } from "@/components/transaction-cadastro";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
-  Loader2,
+  Camera,
+  Paperclip,
   Plus,
+  Recycle,
+  RotateCcw,
   Trash2,
+  TriangleAlert,
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,18 +31,34 @@ interface Props {
   estimates: { id: string; title: string }[];
 }
 
+type Lang = "en" | "pt" | "es";
+
+const M = {
+  wasteTitle: { en: "Waste & loss", pt: "Desperdício & perdas", es: "Desperdicio y pérdidas" },
+  lost: { en: "Lost value", pt: "Valor perdido", es: "Valor perdido" },
+  returned: { en: "Returned", pt: "Devolvido", es: "Devuelto" },
+  reused: { en: "Reused", pt: "Reaproveitado", es: "Reutilizado" },
+  wasteRate: { en: "Waste rate", pt: "Taxa de desperdício", es: "Tasa de desperdicio" },
+  ofSpend: { en: "of spend", pt: "do gasto", es: "del gasto" },
+} as const;
+
+const DISP_BADGE: Record<Disposition, { label: Record<Lang, string>; cls: string }> = {
+  used: { label: { en: "used", pt: "usado", es: "usado" }, cls: "" },
+  wasted: { label: { en: "wasted", pt: "desperdício", es: "desperdicio" }, cls: "bg-rose-500/15 text-rose-600" },
+  returned: { label: { en: "returned", pt: "devolvido", es: "devuelto" }, cls: "bg-blue-500/15 text-blue-600" },
+  reused: { label: { en: "reused", pt: "reaproveitado", es: "reutilizado" }, cls: "bg-emerald-500/15 text-emerald-600" },
+  broken: { label: { en: "broken", pt: "quebrado", es: "roto" }, cls: "bg-rose-500/15 text-rose-600" },
+  lost: { label: { en: "lost", pt: "perdido", es: "perdido" }, cls: "bg-rose-500/15 text-rose-600" },
+};
+
 export function FinanceManager({ transactions, estimates }: Props) {
   const t = useDict();
-  const lang = useLang();
+  const lang = useLang() as Lang;
   const [pending, startTransition] = useTransition();
-
-  const [kind, setKind] = useState<TransactionKind>("expense");
-  const [category, setCategory] = useState<string>("materials");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [estimateId, setEstimateId] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
+
+  const money = (n: number) => formatMoney(n, lang);
+  const trm = (m: Record<Lang, string>) => m[lang] ?? m.en;
 
   const totals = useMemo(() => {
     let income = 0;
@@ -60,38 +70,25 @@ export function FinanceManager({ transactions, estimates }: Props) {
     return { income, expense, net: income - expense };
   }, [transactions]);
 
-  const categories = kind === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-
-  function pickKind(k: TransactionKind) {
-    setKind(k);
-    setCategory(k === "income" ? "deposit" : "materials");
-  }
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const value = Number(amount);
-    if (!(value > 0)) {
-      toast.error(t.finance.invalidAmount);
-      return;
+  // Waste / loss / return / reuse metrics — the heart of material tracking.
+  const waste = useMemo(() => {
+    let lostValue = 0;
+    let returnedValue = 0;
+    let reusedValue = 0;
+    let lossCount = 0;
+    for (const tx of transactions) {
+      const d = tx.disposition as Disposition | null | undefined;
+      if (!d) continue;
+      const amt = Number(tx.amount);
+      if (LOSS_DISPOSITIONS.includes(d)) {
+        lostValue += tx.waste_value != null ? Number(tx.waste_value) : amt;
+        lossCount += 1;
+      } else if (d === "returned") returnedValue += amt;
+      else if (d === "reused") reusedValue += amt;
     }
-    startTransition(async () => {
-      try {
-        await addTransaction({
-          kind,
-          category,
-          amount: value,
-          description: description || undefined,
-          occurred_at: date,
-          estimate_id: estimateId || null,
-        });
-        setAmount("");
-        setDescription("");
-        toast.success(t.finance.added);
-      } catch {
-        toast.error(t.common.error);
-      }
-    });
-  }
+    const rate = totals.expense > 0 ? (lostValue / totals.expense) * 100 : 0;
+    return { lostValue, returnedValue, reusedValue, lossCount, rate };
+  }, [transactions, totals.expense]);
 
   function remove(id: string) {
     startTransition(async () => {
@@ -99,7 +96,6 @@ export function FinanceManager({ transactions, estimates }: Props) {
     });
   }
 
-  // group by date
   const byDate = useMemo(() => {
     const groups = new Map<string, JobTransaction[]>();
     for (const tx of transactions) {
@@ -111,12 +107,13 @@ export function FinanceManager({ transactions, estimates }: Props) {
   }, [transactions]);
 
   const catLabel = (c: string) => t.finance.categories[c] ?? c;
+  const hasWaste = waste.lostValue > 0 || waste.returnedValue > 0 || waste.reusedValue > 0;
 
   return (
     <section className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-bold">{t.finance.title}</h1>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+        <Button size="sm" className="press rounded-full shadow-sm" onClick={() => setShowForm(true)}>
           <Plus className="mr-1 h-4 w-4" /> {t.finance.add}
         </Button>
       </header>
@@ -125,136 +122,46 @@ export function FinanceManager({ transactions, estimates }: Props) {
       <div className="grid grid-cols-3 gap-2">
         <Card>
           <CardContent className="flex flex-col items-center gap-1 p-3">
-            <ArrowUpCircle className="h-4 w-4 text-green-600" />
-            <span className="text-[10px] uppercase text-muted-foreground">
-              {t.finance.income}
-            </span>
-            <span className="text-sm font-bold">{formatMoney(totals.income, lang)}</span>
+            <ArrowUpCircle className="h-4 w-4 text-emerald-600" />
+            <span className="text-[10px] uppercase text-muted-foreground">{t.finance.income}</span>
+            <span className="text-sm font-bold">{money(totals.income)}</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex flex-col items-center gap-1 p-3">
-            <ArrowDownCircle className="h-4 w-4 text-red-500" />
-            <span className="text-[10px] uppercase text-muted-foreground">
-              {t.finance.expenses}
-            </span>
-            <span className="text-sm font-bold">{formatMoney(totals.expense, lang)}</span>
+            <ArrowDownCircle className="h-4 w-4 text-rose-500" />
+            <span className="text-[10px] uppercase text-muted-foreground">{t.finance.expenses}</span>
+            <span className="text-sm font-bold">{money(totals.expense)}</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex flex-col items-center gap-1 p-3">
             <Wallet className="h-4 w-4 text-primary" />
-            <span className="text-[10px] uppercase text-muted-foreground">
-              {t.finance.balance}
-            </span>
-            <span
-              className={cn(
-                "text-sm font-bold",
-                totals.net < 0 ? "text-red-500" : "text-green-600"
-              )}
-            >
-              {formatMoney(totals.net, lang)}
+            <span className="text-[10px] uppercase text-muted-foreground">{t.finance.balance}</span>
+            <span className={cn("text-sm font-bold", totals.net < 0 ? "text-rose-500" : "text-emerald-600")}>
+              {money(totals.net)}
             </span>
           </CardContent>
         </Card>
       </div>
 
-      {/* add form */}
-      {showForm && (
+      {/* waste & loss metrics */}
+      {hasWaste && (
         <Card>
           <CardContent className="p-4">
-            <form onSubmit={submit} className="grid gap-3 md:grid-cols-2">
-              <div className="grid grid-cols-2 gap-2 md:col-span-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={kind === "expense" ? "default" : "outline"}
-                  onClick={() => pickKind("expense")}
-                >
-                  <ArrowDownCircle className="mr-1 h-4 w-4" /> {t.finance.expense}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={kind === "income" ? "default" : "outline"}
-                  onClick={() => pickKind("income")}
-                >
-                  <ArrowUpCircle className="mr-1 h-4 w-4" /> {t.finance.incomeOne}
-                </Button>
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label>{t.finance.category}</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {catLabel(c)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label>{t.finance.amount}</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label>{t.finance.date}</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label>{t.finance.linkedJob}</Label>
-                <Select
-                  value={estimateId || "__none__"}
-                  onValueChange={(v) => setEstimateId(v === "__none__" ? "" : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">{t.finance.noJob}</SelectItem>
-                    {estimates.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-1.5 md:col-span-2">
-                <Label>{t.finance.description}</Label>
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t.finance.descriptionPlaceholder}
-                />
-              </div>
-
-              <Button type="submit" disabled={pending} className="md:col-span-2">
-                {pending ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-1 h-4 w-4" />
-                )}
-                {t.finance.save}
-              </Button>
-            </form>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-semibold">
+                <TriangleAlert className="h-4 w-4 text-amber-500" /> {trm(M.wasteTitle)}
+              </p>
+              <span className="text-xs text-muted-foreground">
+                {waste.rate.toFixed(1)}% {trm(M.ofSpend)}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <MetricCell icon={<TriangleAlert className="h-4 w-4" />} accent="text-rose-600" label={trm(M.lost)} value={money(waste.lostValue)} />
+              <MetricCell icon={<RotateCcw className="h-4 w-4" />} accent="text-blue-600" label={trm(M.returned)} value={money(waste.returnedValue)} />
+              <MetricCell icon={<Recycle className="h-4 w-4" />} accent="text-emerald-600" label={trm(M.reused)} value={money(waste.reusedValue)} />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -274,51 +181,88 @@ export function FinanceManager({ transactions, estimates }: Props) {
               </p>
               <Card>
                 <CardContent className="divide-y p-0">
-                  {list.map((tx) => (
-                    <div key={tx.id} className="flex items-center gap-2 px-3 py-2">
-                      {tx.kind === "income" ? (
-                        <ArrowUpCircle className="h-4 w-4 shrink-0 text-green-600" />
-                      ) : (
-                        <ArrowDownCircle className="h-4 w-4 shrink-0 text-red-500" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm">
-                          {catLabel(tx.category)}
-                          {tx.description ? ` · ${tx.description}` : ""}
-                        </p>
-                        {tx.estimates?.title && (
-                          <p className="truncate text-[11px] text-muted-foreground">
-                            {tx.estimates.title}
+                  {list.map((tx) => {
+                    const disp = tx.disposition as Disposition | null | undefined;
+                    return (
+                      <div key={tx.id} className="flex items-center gap-2 px-3 py-2">
+                        {tx.kind === "income" ? (
+                          <ArrowUpCircle className="h-4 w-4 shrink-0 text-emerald-600" />
+                        ) : (
+                          <ArrowDownCircle className="h-4 w-4 shrink-0 text-rose-500" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm">
+                            {tx.vendor ? `${tx.vendor} · ` : ""}
+                            {catLabel(tx.category)}
+                            {tx.description ? ` · ${tx.description}` : ""}
                           </p>
-                        )}
+                          <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            {tx.estimates?.title && <span className="truncate">{tx.estimates.title}</span>}
+                            {tx.quantity != null && (
+                              <span>
+                                {tx.quantity}
+                                {tx.unit ? ` ${tx.unit}` : ""}
+                              </span>
+                            )}
+                            {tx.photo_path && <Camera className="h-3 w-3" />}
+                            {tx.invoice_path && <Paperclip className="h-3 w-3" />}
+                            {disp && disp !== "used" && (
+                              <span className={cn("rounded px-1 py-0.5 text-[9px] font-semibold", DISP_BADGE[disp].cls)}>
+                                {trm(DISP_BADGE[disp].label)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "whitespace-nowrap text-sm font-semibold",
+                            tx.kind === "income" ? "text-emerald-600" : "text-rose-500"
+                          )}
+                        >
+                          {tx.kind === "income" ? "+" : "−"}
+                          {money(Number(tx.amount))}
+                        </span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          aria-label={t.common.delete}
+                          onClick={() => remove(tx.id)}
+                          disabled={pending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                      <span
-                        className={cn(
-                          "whitespace-nowrap text-sm font-semibold",
-                          tx.kind === "income" ? "text-green-600" : "text-red-500"
-                        )}
-                      >
-                        {tx.kind === "income" ? "+" : "−"}
-                        {formatMoney(Number(tx.amount), lang)}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 shrink-0"
-                        aria-label={t.common.delete}
-                        onClick={() => remove(tx.id)}
-                        disabled={pending}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             </div>
           ))}
         </div>
       )}
+
+      <TransactionCadastro open={showForm} onClose={() => setShowForm(false)} estimates={estimates} />
     </section>
+  );
+}
+
+function MetricCell({
+  icon,
+  accent,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  accent: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 rounded-xl bg-muted/40 p-2.5">
+      <span className={cn("flex items-center gap-1", accent)}>{icon}</span>
+      <span className="truncate text-sm font-bold">{value}</span>
+      <span className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+    </div>
   );
 }
