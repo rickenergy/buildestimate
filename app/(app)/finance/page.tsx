@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { FinanceManager } from "@/components/finance-manager";
 import { FinanceDashboard } from "@/components/finance-dashboard";
-import { signFinanceMedia } from "@/app/actions/finance";
 import type { JobTransaction } from "@/lib/finance";
 import type { ProjectLike, TaskLike } from "@/lib/alerts";
 
@@ -41,10 +40,24 @@ export default async function FinancePage() {
     ]);
 
   const txRows = (transactions ?? []) as JobTransaction[];
-  const mediaPaths = txRows.flatMap((tx) =>
-    [tx.photo_path, tx.invoice_path].filter((p): p is string => Boolean(p))
-  );
-  const mediaUrls = await signFinanceMedia(mediaPaths);
+  // Sign private storage paths (photo / nota fiscal) inline — no server-action
+  // boundary crossed during render.
+  const mediaPaths = [
+    ...new Set(
+      txRows.flatMap((tx) =>
+        [tx.photo_path, tx.invoice_path].filter((p): p is string => Boolean(p))
+      )
+    ),
+  ];
+  const mediaUrls: Record<string, string> = {};
+  if (mediaPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from("photos")
+      .createSignedUrls(mediaPaths, 60 * 60);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) mediaUrls[s.path] = s.signedUrl;
+    }
+  }
 
   return (
     <main className="flex flex-col gap-4 px-4 py-4">
