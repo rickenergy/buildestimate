@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { FinanceManager } from "@/components/finance-manager";
 import { FinanceDashboard } from "@/components/finance-dashboard";
+import { signFinanceMedia } from "@/app/actions/finance";
 import type { JobTransaction } from "@/lib/finance";
 import type { ProjectLike, TaskLike } from "@/lib/alerts";
 
@@ -39,6 +40,12 @@ export default async function FinancePage() {
         .eq("user_id", user!.id),
     ]);
 
+  const txRows = (transactions ?? []) as JobTransaction[];
+  const mediaPaths = txRows.flatMap((tx) =>
+    [tx.photo_path, tx.invoice_path].filter((p): p is string => Boolean(p))
+  );
+  const mediaUrls = await signFinanceMedia(mediaPaths);
+
   return (
     <main className="flex flex-col gap-4 px-4 py-4">
       <FinanceDashboard
@@ -53,8 +60,9 @@ export default async function FinancePage() {
         transactions={(transactions ?? []) as JobTransaction[]}
       />
       <FinanceManager
-        transactions={(transactions ?? []) as JobTransaction[]}
+        transactions={txRows}
         estimates={(estimates ?? []) as { id: string; title: string }[]}
+        mediaUrls={mediaUrls}
       />
     </main>
   );

@@ -53,6 +53,20 @@ export async function addTransaction(fields: {
   if (fields.estimate_id) revalidatePath(`/estimate/${fields.estimate_id}`);
 }
 
+/** Sign private storage paths (photo / nota fiscal) for display. Returns a
+ *  path -> signed URL map. Empty/duplicate-safe. */
+export async function signFinanceMedia(paths: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return {};
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from("photos").createSignedUrls(unique, 60 * 60);
+  const map: Record<string, string> = {};
+  for (const s of data ?? []) {
+    if (s.path && s.signedUrl) map[s.path] = s.signedUrl;
+  }
+  return map;
+}
+
 export async function deleteTransaction(id: string) {
   const supabase = await createClient();
   const { data } = await supabase

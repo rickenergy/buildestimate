@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDict, useLang } from "@/components/providers";
@@ -15,8 +16,7 @@ import { TransactionCadastro } from "@/components/transaction-cadastro";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
-  Camera,
-  Paperclip,
+  FileText,
   Plus,
   Recycle,
   RotateCcw,
@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 interface Props {
   transactions: JobTransaction[];
   estimates: { id: string; title: string }[];
+  mediaUrls?: Record<string, string>;
 }
 
 type Lang = "en" | "pt" | "es";
@@ -40,6 +41,8 @@ const M = {
   reused: { en: "Reused", pt: "Reaproveitado", es: "Reutilizado" },
   wasteRate: { en: "Waste rate", pt: "Taxa de desperdício", es: "Tasa de desperdicio" },
   ofSpend: { en: "of spend", pt: "do gasto", es: "del gasto" },
+  byJob: { en: "Loss by job", pt: "Perda por trabalho", es: "Pérdida por trabajo" },
+  invoice: { en: "Invoice", pt: "Nota", es: "Factura" },
 } as const;
 
 const DISP_BADGE: Record<Disposition, { label: Record<Lang, string>; cls: string }> = {
@@ -51,7 +54,7 @@ const DISP_BADGE: Record<Disposition, { label: Record<Lang, string>; cls: string
   lost: { label: { en: "lost", pt: "perdido", es: "perdido" }, cls: "bg-rose-500/15 text-rose-600" },
 };
 
-export function FinanceManager({ transactions, estimates }: Props) {
+export function FinanceManager({ transactions, estimates, mediaUrls = {} }: Props) {
   const t = useDict();
   const lang = useLang() as Lang;
   const [pending, startTransition] = useTransition();
@@ -89,6 +92,19 @@ export function FinanceManager({ transactions, estimates }: Props) {
     const rate = totals.expense > 0 ? (lostValue / totals.expense) * 100 : 0;
     return { lostValue, returnedValue, reusedValue, lossCount, rate };
   }, [transactions, totals.expense]);
+
+  // Loss broken down by job — where the leaks concentrate.
+  const wasteByJob = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const tx of transactions) {
+      const d = tx.disposition as Disposition | null | undefined;
+      if (!d || !LOSS_DISPOSITIONS.includes(d)) continue;
+      const label = tx.estimates?.title ?? "—";
+      const val = tx.waste_value != null ? Number(tx.waste_value) : Number(tx.amount);
+      map.set(label, (map.get(label) ?? 0) + val);
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+  }, [transactions]);
 
   function remove(id: string) {
     startTransition(async () => {
@@ -162,6 +178,20 @@ export function FinanceManager({ transactions, estimates }: Props) {
               <MetricCell icon={<RotateCcw className="h-4 w-4" />} accent="text-blue-600" label={trm(M.returned)} value={money(waste.returnedValue)} />
               <MetricCell icon={<Recycle className="h-4 w-4" />} accent="text-emerald-600" label={trm(M.reused)} value={money(waste.reusedValue)} />
             </div>
+
+            {wasteByJob.length > 0 && (
+              <div className="mt-3 space-y-1.5 border-t pt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {trm(M.byJob)}
+                </p>
+                {wasteByJob.map(([label, val]) => (
+                  <div key={label} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate">{label}</span>
+                    <span className="shrink-0 font-semibold text-rose-600 tabular-nums">{money(val)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -183,9 +213,20 @@ export function FinanceManager({ transactions, estimates }: Props) {
                 <CardContent className="divide-y p-0">
                   {list.map((tx) => {
                     const disp = tx.disposition as Disposition | null | undefined;
+                    const photoUrl = tx.photo_path ? mediaUrls[tx.photo_path] : undefined;
+                    const invoiceUrl = tx.invoice_path ? mediaUrls[tx.invoice_path] : undefined;
                     return (
                       <div key={tx.id} className="flex items-center gap-2 px-3 py-2">
-                        {tx.kind === "income" ? (
+                        {photoUrl ? (
+                          <a
+                            href={photoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-muted"
+                          >
+                            <Image src={photoUrl} alt="" fill sizes="36px" className="object-cover" unoptimized />
+                          </a>
+                        ) : tx.kind === "income" ? (
                           <ArrowUpCircle className="h-4 w-4 shrink-0 text-emerald-600" />
                         ) : (
                           <ArrowDownCircle className="h-4 w-4 shrink-0 text-rose-500" />
@@ -204,8 +245,16 @@ export function FinanceManager({ transactions, estimates }: Props) {
                                 {tx.unit ? ` ${tx.unit}` : ""}
                               </span>
                             )}
-                            {tx.photo_path && <Camera className="h-3 w-3" />}
-                            {tx.invoice_path && <Paperclip className="h-3 w-3" />}
+                            {invoiceUrl && (
+                              <a
+                                href={invoiceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-0.5 rounded bg-primary/10 px-1 py-0.5 text-[9px] font-semibold text-primary"
+                              >
+                                <FileText className="h-2.5 w-2.5" /> {trm(M.invoice)}
+                              </a>
+                            )}
                             {disp && disp !== "used" && (
                               <span className={cn("rounded px-1 py-0.5 text-[9px] font-semibold", DISP_BADGE[disp].cls)}>
                                 {trm(DISP_BADGE[disp].label)}
