@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getDict } from "@/lib/i18n";
 import { EstimateEditor } from "@/components/estimate-editor";
 import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
@@ -35,7 +38,7 @@ export default async function EstimatePage({
         .select("*")
         .eq("estimate_id", id)
         .order("sort_order"),
-      supabase.from("profiles").select("min_margin_pct").eq("id", user!.id).single(),
+      supabase.from("profiles").select("min_margin_pct, language").eq("id", user!.id).single(),
       supabase
         .from("job_transactions")
         .select("*")
@@ -77,6 +80,8 @@ export default async function EstimatePage({
     .single();
 
   if (!estimate) notFound();
+
+  const t = getDict(profile?.language as string | undefined);
 
   return (
     <>
@@ -127,6 +132,12 @@ export default async function EstimatePage({
           estimateId={id}
           initial={(estimate.market_insights as MarketInsights | null) ?? null}
         />
+        <Link
+          href="/estimates"
+          className="press flex h-11 w-full items-center justify-center gap-2 rounded-lg border bg-card text-sm font-medium shadow-xs hover:bg-muted"
+        >
+          <ArrowLeft className="h-4 w-4" /> {t.common.back}
+        </Link>
         <DeleteEstimateButton estimateId={id} />
       </div>
     </>

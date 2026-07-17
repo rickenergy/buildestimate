@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/client";
 
 const BUCKET = "photos";
 
-/** Resize an image to ≤1600px JPEG blob before upload — keeps storage light. */
-export async function resizeImageToBlob(file: File): Promise<Blob> {
+/** Resize an image to ≤`max`px JPEG blob before upload — keeps storage light. */
+export async function resizeImageToBlob(file: File, max = 1600): Promise<Blob> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -14,7 +14,7 @@ export async function resizeImageToBlob(file: File): Promise<Blob> {
       el.onerror = reject;
       el.src = url;
     });
-    const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(img.width * scale);
     canvas.height = Math.round(img.height * scale);
@@ -52,4 +52,30 @@ export async function uploadAttachment(kind: "photo" | "invoice", file: File): P
   const { error } = await supabase.storage.from(BUCKET).upload(path, body, { contentType });
   if (error) throw error;
   return path;
+}
+
+/**
+ * Upload company branding (logo or wide banner) to the PUBLIC `logos` bucket and
+ * return a permanent public URL. Public on purpose: the proposal page is opened
+ * by clients who are not signed in, so a signed (expiring) URL would break.
+ * Logo stays square-ish (512px); banner keeps width for a hero strip (1600px).
+ */
+export async function uploadBranding(kind: "logo" | "banner", file: File): Promise<string> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const blob = await resizeImageToBlob(file, kind === "logo" ? 512 : 1600);
+  // Overwrite the same key so old files don't pile up; cache-bust via ?v=.
+  const path = `${user.id}/${kind}.jpg`;
+
+  const { error } = await supabase.storage
+    .from("logos")
+    .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("logos").getPublicUrl(path);
+  return `${data.publicUrl}?v=${Date.now()}`;
 }

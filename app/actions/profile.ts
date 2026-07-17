@@ -9,6 +9,11 @@ export async function updateProfile(fields: {
   company_name?: string;
   phone?: string;
   language?: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
+  company_address?: string | null;
+  company_email?: string | null;
+  license_number?: string | null;
   overhead_pct?: number;
   profit_pct?: number;
   tax_pct?: number;

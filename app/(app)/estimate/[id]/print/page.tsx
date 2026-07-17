@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { EstimatePrintView } from "@/components/estimate-print-view";
-import type { Estimate, EstimateItem, Profile } from "@/lib/types";
+import { EstimatePrintView, type PrintProfile } from "@/components/estimate-print-view";
+import type { Estimate, EstimateItem } from "@/lib/types";
 
 export default async function EstimatePrintPage({
   params,
@@ -19,7 +19,9 @@ export default async function EstimatePrintPage({
     supabase.from("estimate_items").select("*").eq("estimate_id", id).order("sort_order"),
     supabase
       .from("profiles")
-      .select("company_name, full_name, phone")
+      .select(
+        "company_name, full_name, phone, logo_url, banner_url, company_address, company_email, license_number"
+      )
       .eq("id", user!.id)
       .single(),
   ]);
@@ -34,7 +36,7 @@ export default async function EstimatePrintPage({
         }
       }
       items={(items ?? []) as EstimateItem[]}
-      profile={(profile ?? {}) as Pick<Profile, "company_name" | "full_name" | "phone">}
+      profile={(profile ?? {}) as PrintProfile}
     />
   );
 }

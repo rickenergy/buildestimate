@@ -29,7 +29,11 @@ export interface Profile {
   full_name: string;
   company_name: string;
   logo_url: string | null;
+  banner_url: string | null;
   phone: string | null;
+  company_address: string | null;
+  company_email: string | null;
+  license_number: string | null;
   language: Language;
   overhead_pct: number;
   profit_pct: number;

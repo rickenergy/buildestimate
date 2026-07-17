@@ -7,12 +7,25 @@ import { formatMoney } from "@/lib/format";
 import { ArrowLeft, Printer } from "lucide-react";
 import type { Estimate, EstimateItem, Profile } from "@/lib/types";
 
+/** Profile fields the printable estimate needs (company identity + branding). */
+export type PrintProfile = Pick<
+  Profile,
+  | "company_name"
+  | "full_name"
+  | "phone"
+  | "logo_url"
+  | "banner_url"
+  | "company_address"
+  | "company_email"
+  | "license_number"
+>;
+
 interface Props {
   estimate: Estimate & {
     clients: { name: string; phone: string | null; address: string | null } | null;
   };
   items: EstimateItem[];
-  profile: Pick<Profile, "company_name" | "full_name" | "phone">;
+  profile: PrintProfile;
 }
 
 /** Print-ready output of every estimate figure — browser print → PDF. */
@@ -58,15 +71,42 @@ export function EstimatePrintView({ estimate, items, profile }: Props) {
         </Button>
       </div>
 
+      {/* banner (branding) */}
+      {profile.banner_url && (
+        <div className="mb-4 h-28 w-full overflow-hidden rounded-lg print:rounded-none">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={profile.banner_url} alt="" className="h-full w-full object-cover" />
+        </div>
+      )}
+
       {/* header */}
       <header className="mb-6 border-b pb-4">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{profile.company_name || "—"}</h1>
-            <p className="text-sm text-neutral-600">
-              {profile.full_name}
-              {profile.phone ? ` · ${profile.phone}` : ""}
-            </p>
+          <div className="flex items-start gap-3">
+            {profile.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.logo_url}
+                alt=""
+                className="h-14 w-14 shrink-0 rounded-lg object-cover"
+              />
+            )}
+            <div>
+              <h1 className="text-2xl font-bold">{profile.company_name || "—"}</h1>
+              <p className="text-sm text-neutral-600">
+                {profile.full_name}
+                {profile.phone ? ` · ${profile.phone}` : ""}
+              </p>
+              {profile.company_email && (
+                <p className="text-xs text-neutral-500">{profile.company_email}</p>
+              )}
+              {profile.company_address && (
+                <p className="text-xs text-neutral-500">{profile.company_address}</p>
+              )}
+              {profile.license_number && (
+                <p className="text-xs text-neutral-500">Lic. {profile.license_number}</p>
+              )}
+            </div>
           </div>
           <div className="text-right text-sm text-neutral-600">
             <p className="text-base font-semibold text-black">{t.estimate.title}</p>
