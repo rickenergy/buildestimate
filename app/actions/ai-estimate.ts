@@ -4,6 +4,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { loadPrices } from "@/lib/prices-server";
+import { learnCatalogItems } from "@/lib/catalog-learn";
 import { locationIndex } from "@/lib/takeoff/location";
 import { computeTotals } from "@/lib/takeoff";
 import { saveEstimate } from "./estimates";
@@ -166,6 +167,9 @@ export async function acceptAiDraft(draft: AiDraft, clientName?: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
+
+  // Auto-learn: any AI line item not already in the catalog is saved for reuse.
+  await learnCatalogItems(supabase, user.id, draft.trade, draft.line_items);
 
   const { data: profile } = await supabase
     .from("profiles")
