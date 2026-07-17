@@ -85,3 +85,46 @@ export async function deleteSupplier(id: string) {
   await supabase.from("suppliers").delete().eq("id", id).eq("user_id", user.id);
   revalidatePath("/suppliers");
 }
+
+// ── Inventory ──────────────────────────────────────────────────
+export async function upsertInventoryItem(fields: {
+  id?: string;
+  name: string;
+  category?: string;
+  quantity?: number;
+  unit?: string;
+  unit_cost?: number | null;
+  min_quantity?: number | null;
+  is_equipment?: boolean;
+  supplier?: string;
+  location?: string;
+  notes?: string;
+}) {
+  const { supabase, user } = await requireUser();
+  if (!fields.name.trim()) throw new Error("Name required");
+  const row = {
+    user_id: user.id,
+    name: fields.name.trim(),
+    category: fields.category?.trim() || null,
+    quantity: fields.quantity ?? 0,
+    unit: fields.unit?.trim() || null,
+    unit_cost: fields.unit_cost ?? null,
+    min_quantity: fields.min_quantity ?? null,
+    is_equipment: fields.is_equipment ?? false,
+    supplier: fields.supplier?.trim() || null,
+    location: fields.location?.trim() || null,
+    notes: fields.notes?.trim() || null,
+  };
+  if (fields.id) {
+    await supabase.from("inventory_items").update(row).eq("id", fields.id).eq("user_id", user.id);
+  } else {
+    await supabase.from("inventory_items").insert(row);
+  }
+  revalidatePath("/inventory");
+}
+
+export async function deleteInventoryItem(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("inventory_items").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/inventory");
+}

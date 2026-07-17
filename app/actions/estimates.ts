@@ -355,6 +355,61 @@ export async function addEstimateItem(
   await recalc(estimateId);
 }
 
+/** Add a catalog line to an estimate — material + labor rows in one recalc. */
+export async function addCatalogLine(
+  estimateId: string,
+  entry: { name: string; unit: string; material_cost: number; labor_cost: number },
+  qty: number
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  const q = qty > 0 ? qty : 1;
+
+  const rows: {
+    estimate_id: string;
+    user_id: string;
+    kind: ItemKind;
+    description: string;
+    qty: number;
+    unit: string;
+    unit_cost: number;
+    total: number;
+    sort_order: number;
+  }[] = [];
+  if (Number(entry.material_cost) > 0) {
+    rows.push({
+      estimate_id: estimateId,
+      user_id: user.id,
+      kind: "material",
+      description: entry.name,
+      qty: q,
+      unit: entry.unit,
+      unit_cost: Number(entry.material_cost),
+      total: Math.round(q * Number(entry.material_cost) * 100) / 100,
+      sort_order: 999,
+    });
+  }
+  if (Number(entry.labor_cost) > 0) {
+    rows.push({
+      estimate_id: estimateId,
+      user_id: user.id,
+      kind: "labor",
+      description: entry.name,
+      qty: q,
+      unit: entry.unit,
+      unit_cost: Number(entry.labor_cost),
+      total: Math.round(q * Number(entry.labor_cost) * 100) / 100,
+      sort_order: 999,
+    });
+  }
+  if (rows.length === 0) return;
+  await supabase.from("estimate_items").insert(rows);
+  await recalc(estimateId);
+}
+
 export async function updateEstimatePcts(
   estimateId: string,
   fields: { overhead_pct?: number; profit_pct?: number; tax_pct?: number }

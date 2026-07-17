@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
+import { loadPrices } from "@/lib/prices-server";
 import { EstimateEditor } from "@/components/estimate-editor";
 import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
@@ -82,6 +83,7 @@ export default async function EstimatePage({
   if (!estimate) notFound();
 
   const t = getDict(profile?.language as string | undefined);
+  const catalog = await loadPrices(supabase);
 
   return (
     <>
@@ -89,6 +91,7 @@ export default async function EstimatePage({
         estimate={estimate as Estimate & { clients: { name: string } | null }}
         items={(items ?? []) as EstimateItem[]}
         minMarginPct={Number(profile?.min_margin_pct ?? 15)}
+        catalog={catalog}
       />
       <div className="space-y-4 px-4 pb-8">
         <EstimateShare

@@ -18,7 +18,7 @@ import { useDict, useLang } from "@/components/providers";
 import { LANGUAGES } from "@/lib/i18n";
 import { updateProfile, signOut } from "@/app/actions/profile";
 import { uploadBranding } from "@/lib/upload-client";
-import { LogOut, BookOpen, Sun, Moon, ImagePlus, Loader2, Trash2, HardHat, Truck } from "lucide-react";
+import { LogOut, BookOpen, Sun, Moon, ImagePlus, Loader2, Trash2, HardHat, Truck, Package } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
@@ -32,6 +32,7 @@ const APPEARANCE = {
 const NETWORK = {
   subs: { en: "Subcontractors", pt: "Subcontratados", es: "Subcontratistas" },
   suppliers: { en: "Suppliers", pt: "Fornecedores", es: "Proveedores" },
+  inventory: { en: "Inventory", pt: "Estoque / Inventário", es: "Inventario" },
 } as const;
 
 const BRAND = {
@@ -362,6 +363,12 @@ export function SettingsForm({ profile, email }: { profile: Profile; email: stri
           </Link>
         </Button>
       </div>
+
+      <Button asChild variant="outline">
+        <Link href="/inventory">
+          <Package className="mr-1 h-4 w-4" /> {tr(NETWORK.inventory)}
+        </Link>
+      </Button>
 
       <Button variant="outline" onClick={() => signOut()}>
         <LogOut className="mr-1 h-4 w-4" /> {t.auth.signOut}

@@ -83,6 +83,23 @@ export interface Supplier {
   updated_at: string;
 }
 
+export interface InventoryItem {
+  id: string;
+  user_id: string;
+  name: string;
+  category: string | null;
+  quantity: number;
+  unit: string | null;
+  unit_cost: number | null;
+  min_quantity: number | null;
+  is_equipment: boolean;
+  supplier: string | null;
+  location: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Estimate {
   id: string;
   user_id: string;

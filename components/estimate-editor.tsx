@@ -34,8 +34,10 @@ import {
   updateEstimateStatus,
 } from "@/app/actions/estimates";
 import { ArrowLeft, Plus, Trash2, FileText, Users, CalendarDays, Ruler } from "lucide-react";
+import { CatalogPicker } from "@/components/catalog-picker";
 import { cn } from "@/lib/utils";
 import type { Estimate, EstimateItem, ItemKind } from "@/lib/types";
+import type { PriceEntry } from "@/lib/takeoff/types";
 
 const SCORE_STYLES: Record<string, string> = {
   healthy: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
@@ -47,9 +49,10 @@ interface Props {
   estimate: Estimate & { clients: { name: string } | null };
   items: EstimateItem[];
   minMarginPct: number;
+  catalog: PriceEntry[];
 }
 
-export function EstimateEditor({ estimate, items, minMarginPct }: Props) {
+export function EstimateEditor({ estimate, items, minMarginPct, catalog }: Props) {
   const t = useDict();
   const lang = useLang();
   const router = useRouter();
@@ -181,9 +184,12 @@ export function EstimateEditor({ estimate, items, minMarginPct }: Props) {
         );
       })}
 
-      <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-        <Plus className="mr-1 h-4 w-4" /> {t.estimate.addItem}
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+          <Plus className="mr-1 h-4 w-4" /> {t.estimate.addItem}
+        </Button>
+        <CatalogPicker estimateId={estimate.id} catalog={catalog} />
+      </div>
 
       <Card>
         <CardContent className="space-y-2 p-4 text-sm">
