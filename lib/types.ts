@@ -83,6 +83,22 @@ export interface Supplier {
   updated_at: string;
 }
 
+export interface Incident {
+  id: string;
+  user_id: string;
+  estimate_id: string | null;
+  title: string;
+  description: string | null;
+  severity: "green" | "yellow" | "red";
+  status: "open" | "resolved";
+  assignee_sub_id: string | null;
+  assignee_name: string | null;
+  assignee_email: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  estimates?: { title: string } | null;
+}
+
 export interface InventoryItem {
   id: string;
   user_id: string;

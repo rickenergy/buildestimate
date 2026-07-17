@@ -23,6 +23,7 @@ import {
   HardHat,
   MapPin,
   BellRing,
+  TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,8 @@ export interface HomeData {
 export function HomeDashboard({ data }: { data: HomeData }) {
   const t = useDict();
   const lang = useLang();
+  const incidentsLabel =
+    lang === "pt" ? "Incidentes & problemas" : lang === "es" ? "Incidentes y problemas" : "Incidents & problems";
   const money = (n: number) => formatMoney(n, lang);
 
   const trendNode = (trend: number | null | undefined) =>
@@ -109,6 +112,15 @@ export function HomeDashboard({ data }: { data: HomeData }) {
         >
           <span className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" /> {t.demand.title}
+          </span>
+          <span className="text-muted-foreground">→</span>
+        </Link>
+        <Link
+          href="/incidents"
+          className="press col-span-2 flex items-center justify-between rounded-2xl bg-card px-4 py-3 text-sm font-medium shadow-xs ring-1 ring-foreground/10 hover:shadow-sm"
+        >
+          <span className="flex items-center gap-2">
+            <TriangleAlert className="h-4 w-4 text-amber-500" /> {incidentsLabel}
           </span>
           <span className="text-muted-foreground">→</span>
         </Link>
