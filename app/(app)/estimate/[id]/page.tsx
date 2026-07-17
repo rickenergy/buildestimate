@@ -16,6 +16,9 @@ import { signPhotos, type JobPhoto } from "@/app/actions/photos";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
 import { DeleteEstimateButton } from "@/components/delete-estimate-button";
+import { ShareWithSubs } from "@/components/share-with-subs";
+import type { ShareRow } from "@/app/actions/shares";
+import type { Subcontractor } from "@/lib/types";
 import type { JobTransaction } from "@/lib/finance";
 import type { MarketInsights } from "@/app/actions/market";
 import type { Estimate, EstimateItem } from "@/lib/types";
@@ -80,6 +83,19 @@ export default async function EstimatePage({
     .eq("id", user!.id)
     .single();
 
+  const [{ data: subs }, { data: shareRows }] = await Promise.all([
+    supabase.from("subcontractors").select("*").eq("user_id", user!.id).order("name"),
+    supabase
+      .from("estimate_shares")
+      .select("*, subcontractors(name)")
+      .eq("estimate_id", id)
+      .order("queue_order"),
+  ]);
+  const shares = (shareRows ?? []).map((s) => ({
+    ...s,
+    sub_name: (s.subcontractors as { name: string } | null)?.name ?? null,
+  })) as ShareRow[];
+
   if (!estimate) notFound();
 
   const t = getDict(profile?.language as string | undefined);
@@ -129,6 +145,11 @@ export default async function EstimatePage({
           estimateId={id}
           before={beforePhotos}
           after={afterPhotos}
+        />
+        <ShareWithSubs
+          estimateId={id}
+          subs={(subs ?? []) as Subcontractor[]}
+          shares={shares}
         />
         <RelatedWorkCard trade={estimate.trade} />
         <MarketInsightsCard
