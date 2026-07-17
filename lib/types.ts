@@ -55,6 +55,34 @@ export interface ClientRow {
   updated_at: string;
 }
 
+export interface Subcontractor {
+  id: string;
+  user_id: string;
+  name: string;
+  company: string | null;
+  trade: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Supplier {
+  id: string;
+  user_id: string;
+  name: string;
+  category: string | null;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  account_number: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Estimate {
   id: string;
   user_id: string;
