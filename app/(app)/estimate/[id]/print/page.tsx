@@ -20,7 +20,7 @@ export default async function EstimatePrintPage({
     supabase
       .from("profiles")
       .select(
-        "company_name, full_name, phone, logo_url, banner_url, company_address, company_email, license_number"
+        "company_name, full_name, phone, logo_url, banner_url, banner_position, company_address, company_email, license_number"
       )
       .eq("id", user!.id)
       .single(),

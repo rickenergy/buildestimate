@@ -44,6 +44,7 @@ const BRAND = {
   },
   logo: { en: "Logo", pt: "Logo", es: "Logo" },
   banner: { en: "Banner (wide)", pt: "Banner (retangular)", es: "Banner (ancho)" },
+  reposition: { en: "Reposition ↕", pt: "Reposicionar ↕", es: "Reposicionar ↕" },
   add: { en: "Upload", pt: "Enviar", es: "Subir" },
   remove: { en: "Remove", pt: "Remover", es: "Quitar" },
   address: { en: "Company address", pt: "Endereço da empresa", es: "Dirección" },
@@ -74,6 +75,7 @@ export function SettingsForm({ profile, email }: { profile: Profile; email: stri
 
   const [logoUrl, setLogoUrl] = useState(profile.logo_url);
   const [bannerUrl, setBannerUrl] = useState(profile.banner_url);
+  const [bannerPos, setBannerPos] = useState<number>(profile.banner_position ?? 50);
   const [uploading, setUploading] = useState<"logo" | "banner" | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
@@ -255,11 +257,31 @@ export function SettingsForm({ profile, email }: { profile: Profile; email: stri
             <div className="flex h-24 w-full items-center justify-center overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10">
               {bannerUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={bannerUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  style={{ objectPosition: `center ${bannerPos}%` }}
+                />
               ) : (
                 <ImagePlus className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
+            {bannerUrl && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">{tr(BRAND.reposition)}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={bannerPos}
+                  onChange={(e) => setBannerPos(Number(e.target.value))}
+                  onMouseUp={() => startTransition(() => updateProfile({ banner_position: bannerPos }))}
+                  onTouchEnd={() => startTransition(() => updateProfile({ banner_position: bannerPos }))}
+                  className="h-1.5 flex-1 accent-primary"
+                />
+              </div>
+            )}
             <div className="flex gap-2">
               <Button
                 type="button"

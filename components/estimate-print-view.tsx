@@ -15,6 +15,7 @@ export type PrintProfile = Pick<
   | "phone"
   | "logo_url"
   | "banner_url"
+  | "banner_position"
   | "company_address"
   | "company_email"
   | "license_number"
@@ -75,7 +76,12 @@ export function EstimatePrintView({ estimate, items, profile }: Props) {
       {profile.banner_url && (
         <div className="mb-4 h-28 w-full overflow-hidden rounded-lg print:rounded-none">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={profile.banner_url} alt="" className="h-full w-full object-cover" />
+          <img
+            src={profile.banner_url}
+            alt=""
+            className="h-full w-full object-cover"
+            style={{ objectPosition: `center ${profile.banner_position ?? 50}%` }}
+          />
         </div>
       )}
 

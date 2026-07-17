@@ -30,6 +30,7 @@ export interface Profile {
   company_name: string;
   logo_url: string | null;
   banner_url: string | null;
+  banner_position: number | null;
   phone: string | null;
   company_address: string | null;
   company_email: string | null;

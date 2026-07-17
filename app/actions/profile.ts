@@ -11,6 +11,7 @@ export async function updateProfile(fields: {
   language?: string;
   logo_url?: string | null;
   banner_url?: string | null;
+  banner_position?: number;
   company_address?: string | null;
   company_email?: string | null;
   license_number?: string | null;
