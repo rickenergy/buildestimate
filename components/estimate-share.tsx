@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
+import { publicBaseUrl } from "@/lib/site-url";
 import { FileDown, MessageCircle } from "lucide-react";
 
 interface Props {
@@ -44,9 +45,10 @@ export function EstimateShare({
   function waUrl() {
     let digits = phone.replace(/\D/g, "");
     if (digits.length === 10) digits = `1${digits}`; // US default
+    const base = publicBaseUrl();
     const proposalUrl = proposalToken
-      ? `${window.location.origin}/p/${proposalToken}`
-      : `${window.location.origin}/estimate/${estimateId}/print`;
+      ? `${base}/p/${proposalToken}`
+      : `${base}/estimate/${estimateId}/print`;
     const lines = [
       `*${title}*`,
       companyName ?? "",

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
 import { getDemandReport } from "@/app/actions/demand";
-import { getPermitPulse } from "@/lib/permits";
+import { getPermitPulseAll } from "@/lib/permits";
 import { regionForState } from "@/lib/census-region";
 import { PermitPulseCard } from "@/components/permit-pulse-card";
 import { StageBars } from "@/components/charts";
@@ -41,7 +41,7 @@ export default async function DemandPage() {
 
   const [report, permitPulse] = await Promise.all([
     getDemandReport(),
-    getPermitPulse(region),
+    getPermitPulseAll(),
   ]);
   const money = (n: number) => formatMoney(n, lang);
   const tradeName = (tr: string) => t.trades[tr] ?? tr;
@@ -60,7 +60,7 @@ export default async function DemandPage() {
         <p className="text-sm text-muted-foreground">{d.subtitle}</p>
       </header>
 
-      <PermitPulseCard pulse={permitPulse} />
+      <PermitPulseCard pulse={permitPulse} defaultGeo={region} />
 
       {report.locatedCount === 0 ? (
         <Card>

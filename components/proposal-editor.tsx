@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
+import { publicBaseUrl } from "@/lib/site-url";
 import {
   generateProposalText,
   updateProposal,
@@ -36,10 +37,7 @@ export function ProposalEditor({ estimate, proposal }: Props) {
   const [terms, setTerms] = useState(proposal.terms);
   const [validUntil, setValidUntil] = useState(proposal.valid_until ?? "");
 
-  const publicUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/p/${proposal.token}`
-      : `/p/${proposal.token}`;
+  const publicUrl = `${publicBaseUrl()}/p/${proposal.token}`;
 
   const isSent = proposal.status !== "draft";
 

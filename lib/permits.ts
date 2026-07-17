@@ -52,10 +52,14 @@ const METRICS = Object.keys(MATCHERS) as PermitMetric[];
 /** key into the geo×metric buckets */
 const bkey = (geo: string, m: PermitMetric) => `${geo}|${m}`;
 
-export async function getPermitPulse(geo: CensusGeo = "US"): Promise<PermitPulse> {
+type Buckets = Map<string, Map<string, number>>;
+
+/** One cached API call → buckets of (geo|metric) → time → value for ALL geos. */
+async function fetchBuckets(): Promise<
+  { ok: true; buckets: Buckets } | { ok: false; needsKey?: boolean; error?: boolean }
+> {
   const key = process.env.CENSUS_API_KEY;
-  if (!key)
-    return { needsKey: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+  if (!key) return { ok: false, needsKey: true };
 
   const now = new Date();
   const toY = now.getUTCFullYear();
@@ -68,14 +72,12 @@ export async function getPermitPulse(geo: CensusGeo = "US"): Promise<PermitPulse
   let rows: string[][];
   try {
     const res = await fetch(url, { next: { revalidate: 86400 } });
-    if (!res.ok)
-      return { error: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+    if (!res.ok) return { ok: false, error: true };
     rows = (await res.json()) as string[][];
   } catch {
-    return { error: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+    return { ok: false, error: true };
   }
-  if (!Array.isArray(rows) || rows.length < 2)
-    return { error: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+  if (!Array.isArray(rows) || rows.length < 2) return { ok: false, error: true };
 
   const header = rows[0];
   const iVal = header.indexOf("cell_value");
@@ -83,11 +85,9 @@ export async function getPermitPulse(geo: CensusGeo = "US"): Promise<PermitPulse
   const iDt = header.indexOf("data_type_code");
   const iGeo = header.indexOf("geo_level_code");
   const iTime = header.indexOf("time");
-  if (iVal < 0 || iCat < 0 || iDt < 0 || iGeo < 0 || iTime < 0)
-    return { error: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+  if (iVal < 0 || iCat < 0 || iDt < 0 || iGeo < 0 || iTime < 0) return { ok: false, error: true };
 
-  // bucket every (geo, metric) → time → value
-  const buckets = new Map<string, Map<string, number>>();
+  const buckets: Buckets = new Map();
   for (const r of rows.slice(1)) {
     const cat = r[iCat];
     const dt = r[iDt];
@@ -104,14 +104,14 @@ export async function getPermitPulse(geo: CensusGeo = "US"): Promise<PermitPulse
       }
     }
   }
+  return { ok: true, buckets };
+}
 
-  // use requested region if it has data, else fall back to national
-  const hasGeo = (g: CensusGeo) => METRICS.some((m) => (buckets.get(bkey(g, m))?.size ?? 0) > 0);
-  const usedGeo: CensusGeo = geo !== "US" && hasGeo(geo) ? geo : "US";
-
+/** Build the 3 metric series + latest month for one geo. */
+function seriesForGeo(buckets: Buckets, geo: CensusGeo): { updated: string | null; series: PermitSeries[] } {
   let updated: string | null = null;
   const series: PermitSeries[] = METRICS.map((metric) => {
-    const map = buckets.get(bkey(usedGeo, metric)) ?? new Map<string, number>();
+    const map = buckets.get(bkey(geo, metric)) ?? new Map<string, number>();
     const points = [...map.entries()]
       .map(([time, value]) => ({ time, value }))
       .sort((a, b) => a.time.localeCompare(b.time));
@@ -125,6 +125,46 @@ export async function getPermitPulse(geo: CensusGeo = "US"): Promise<PermitPulse
     }
     return { metric, latest: last?.value ?? null, yoyPct, points: points.slice(-24) };
   });
+  return { updated, series };
+}
 
+export async function getPermitPulse(geo: CensusGeo = "US"): Promise<PermitPulse> {
+  const f = await fetchBuckets();
+  if (!f.ok) {
+    if (f.needsKey) return { needsKey: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+    return { error: true, signupUrl: SIGNUP, geo, updated: null, series: [] };
+  }
+  const hasGeo = (g: CensusGeo) => METRICS.some((m) => (f.buckets.get(bkey(g, m))?.size ?? 0) > 0);
+  const usedGeo: CensusGeo = geo !== "US" && hasGeo(geo) ? geo : "US";
+  const { updated, series } = seriesForGeo(f.buckets, usedGeo);
   return { signupUrl: SIGNUP, geo: usedGeo, updated, series };
+}
+
+export const ALL_GEOS: CensusGeo[] = ["US", "NO", "SO", "MW", "WE"];
+
+export interface AllPermitPulses {
+  needsKey?: boolean;
+  error?: boolean;
+  signupUrl: string;
+  updated: string | null;
+  byGeo: Partial<Record<CensusGeo, PermitSeries[]>>;
+}
+
+/** Every geo's series from a single cached fetch — for the region selector. */
+export async function getPermitPulseAll(): Promise<AllPermitPulses> {
+  const f = await fetchBuckets();
+  if (!f.ok) {
+    if (f.needsKey) return { needsKey: true, signupUrl: SIGNUP, updated: null, byGeo: {} };
+    return { error: true, signupUrl: SIGNUP, updated: null, byGeo: {} };
+  }
+  const byGeo: Partial<Record<CensusGeo, PermitSeries[]>> = {};
+  let updated: string | null = null;
+  for (const g of ALL_GEOS) {
+    const { updated: u, series } = seriesForGeo(f.buckets, g);
+    if (series.some((s) => s.latest !== null)) {
+      byGeo[g] = series;
+      if (u && (!updated || u > updated)) updated = u;
+    }
+  }
+  return { signupUrl: SIGNUP, updated, byGeo };
 }
