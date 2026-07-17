@@ -128,3 +128,75 @@ export async function deleteInventoryItem(id: string) {
   await supabase.from("inventory_items").delete().eq("id", id).eq("user_id", user.id);
   revalidatePath("/inventory");
 }
+
+// ── Employees ──────────────────────────────────────────────────
+export async function upsertEmployee(fields: {
+  id?: string;
+  name: string;
+  role?: string;
+  phone?: string;
+  email?: string;
+  pay_rate?: number | null;
+  pay_unit?: string;
+  notes?: string;
+}) {
+  const { supabase, user } = await requireUser();
+  if (!fields.name.trim()) throw new Error("Name required");
+  const row = {
+    user_id: user.id,
+    name: fields.name.trim(),
+    role: fields.role?.trim() || null,
+    phone: fields.phone?.trim() || null,
+    email: fields.email?.trim() || null,
+    pay_rate: fields.pay_rate ?? null,
+    pay_unit: fields.pay_unit?.trim() || null,
+    notes: fields.notes?.trim() || null,
+  };
+  if (fields.id) {
+    await supabase.from("employees").update(row).eq("id", fields.id).eq("user_id", user.id);
+  } else {
+    await supabase.from("employees").insert(row);
+  }
+  revalidatePath("/employees");
+}
+
+export async function deleteEmployee(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("employees").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/employees");
+}
+
+// ── Retail stores ──────────────────────────────────────────────
+export async function upsertStore(fields: {
+  id?: string;
+  name: string;
+  category?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  notes?: string;
+}) {
+  const { supabase, user } = await requireUser();
+  if (!fields.name.trim()) throw new Error("Name required");
+  const row = {
+    user_id: user.id,
+    name: fields.name.trim(),
+    category: fields.category?.trim() || null,
+    address: fields.address?.trim() || null,
+    phone: fields.phone?.trim() || null,
+    website: fields.website?.trim() || null,
+    notes: fields.notes?.trim() || null,
+  };
+  if (fields.id) {
+    await supabase.from("retail_stores").update(row).eq("id", fields.id).eq("user_id", user.id);
+  } else {
+    await supabase.from("retail_stores").insert(row);
+  }
+  revalidatePath("/retail-stores");
+}
+
+export async function deleteStore(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("retail_stores").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/retail-stores");
+}

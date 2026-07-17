@@ -18,7 +18,7 @@ import { useDict, useLang } from "@/components/providers";
 import { LANGUAGES } from "@/lib/i18n";
 import { updateProfile, signOut } from "@/app/actions/profile";
 import { uploadBranding } from "@/lib/upload-client";
-import { LogOut, BookOpen, Sun, Moon, ImagePlus, Loader2, Trash2, HardHat, Truck, Package } from "lucide-react";
+import { LogOut, BookOpen, Sun, Moon, ImagePlus, Loader2, Trash2, HardHat, Truck, Package, User, Store } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
@@ -33,6 +33,8 @@ const NETWORK = {
   subs: { en: "Subcontractors", pt: "Subcontratados", es: "Subcontratistas" },
   suppliers: { en: "Suppliers", pt: "Fornecedores", es: "Proveedores" },
   inventory: { en: "Inventory", pt: "Estoque / Inventário", es: "Inventario" },
+  employees: { en: "Employees", pt: "Funcionários", es: "Empleados" },
+  stores: { en: "Retail stores", pt: "Lojas", es: "Tiendas" },
 } as const;
 
 const BRAND = {
@@ -382,6 +384,19 @@ export function SettingsForm({ profile, email }: { profile: Profile; email: stri
         <Button asChild variant="outline">
           <Link href="/suppliers">
             <Truck className="mr-1 h-4 w-4" /> {tr(NETWORK.suppliers)}
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Button asChild variant="outline">
+          <Link href="/employees">
+            <User className="mr-1 h-4 w-4" /> {tr(NETWORK.employees)}
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/retail-stores">
+            <Store className="mr-1 h-4 w-4" /> {tr(NETWORK.stores)}
           </Link>
         </Button>
       </div>

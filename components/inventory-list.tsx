@@ -25,7 +25,7 @@ import {
 import { useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import { upsertInventoryItem, deleteInventoryItem } from "@/app/actions/network";
-import { Package, Wrench, Plus, Trash2, ArrowLeft, TriangleAlert } from "lucide-react";
+import { Package, Wrench, Plus, Trash2, ArrowLeft, TriangleAlert, ShoppingCart } from "lucide-react";
 import type { InventoryItem } from "@/lib/types";
 
 type Lang = "en" | "pt" | "es";
@@ -53,6 +53,7 @@ const L = {
   save: { en: "Save", pt: "Salvar", es: "Guardar" },
   edit: { en: "Edit", pt: "Editar", es: "Editar" },
   low: { en: "Low stock", pt: "Estoque baixo", es: "Stock bajo" },
+  reorder: { en: "Buy", pt: "Comprar", es: "Comprar" },
   value: { en: "Total value", pt: "Valor total", es: "Valor total" },
   back: { en: "Back to settings", pt: "Voltar às configurações", es: "Volver a ajustes" },
   cat: {
@@ -86,6 +87,9 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
 
   const isLow = (r: InventoryItem) =>
     r.min_quantity != null && Number(r.quantity) <= Number(r.min_quantity);
+  // Restock target = 2× the minimum; recommend buying the gap.
+  const reorderQty = (r: InventoryItem) =>
+    r.min_quantity != null ? Math.max(0, Math.round(Number(r.min_quantity) * 2 - Number(r.quantity))) : 0;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -139,6 +143,13 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
                       </span>
                     )}
                   </p>
+                  {isLow(r) && reorderQty(r) > 0 && (
+                    <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-primary">
+                      <ShoppingCart className="h-3 w-3" />
+                      {tr(L.reorder)} ~{reorderQty(r)} {r.unit ?? ""}
+                      {r.supplier ? ` · ${r.supplier}` : ""}
+                    </p>
+                  )}
                 </button>
                 <Button
                   size="icon"
