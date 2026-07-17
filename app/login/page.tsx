@@ -22,6 +22,10 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Only show the Google button once the provider is actually configured in
+  // Supabase, so users never hit "provider is not enabled".
+  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
+
   async function googleSignIn() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -150,6 +154,8 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          {googleEnabled && (
+          <>
           <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             or / ou
@@ -177,6 +183,8 @@ export default function LoginPage() {
             </svg>
             Continue with Google / Entrar com Google
           </Button>
+          </>
+          )}
 
           <button
             type="button"
