@@ -71,10 +71,37 @@ export default function LoginPage() {
         router.push("/home");
         router.refresh();
       } else {
-        setMessage("Check your email to confirm your account. / Verifique seu email. / Revisa tu email.");
+        // Email confirmation is off — no link is sent. Send them to sign in.
+        setMode("signin");
+        setPassword("");
+        setConfirmPassword("");
+        setMessage(
+          "Account created! Sign in below. / Conta criada! Faça login abaixo. / ¡Cuenta creada! Inicia sesión."
+        );
         setLoading(false);
       }
     }
+  }
+
+  async function forgotPassword() {
+    if (!email.trim()) {
+      setError("Enter your email first / Informe seu email / Ingresa tu email");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/reset`,
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setMessage(
+      "Reset link sent — check your email. / Link enviado — veja seu email. / Enlace enviado — revisa tu correo."
+    );
   }
 
   return (
@@ -144,6 +171,16 @@ export default function LoginPage() {
                   autoComplete="new-password"
                 />
               </div>
+            )}
+
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={forgotPassword}
+                className="-mt-1 self-end text-xs text-muted-foreground underline"
+              >
+                Forgot password? / Esqueci minha senha
+              </button>
             )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
