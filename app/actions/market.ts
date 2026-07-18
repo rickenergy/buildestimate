@@ -4,6 +4,26 @@ import { revalidatePath } from "next/cache";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getPermitPulse } from "@/lib/permits";
+import { regionForState, type CensusGeo } from "@/lib/census-region";
+
+const REGION_LABEL: Record<CensusGeo, string> = {
+  US: "national",
+  NO: "Northeast",
+  MW: "Midwest",
+  SO: "South",
+  WE: "West",
+};
+
+/** Real external market signal from US Census building permits. */
+export interface MarketSignal {
+  source: "us_census_permits";
+  region: CensusGeo;
+  region_label: string;
+  permits_yoy_pct: number; // year-over-year change in total permits
+  trend: "expanding" | "cooling" | "flat";
+  updated: string | null; // "YYYY-MM"
+}
 
 const LANG_NAMES: Record<string, string> = {
   en: "English",
@@ -50,6 +70,8 @@ export type MarketInsights = z.infer<typeof insightsSchema> & {
   our_unit_price: number | null; // $/sqft we quote
   our_cost: number; // our real material+labor+demo cost
   cost_floor: number; // cost + minimum margin — never bid below this
+  // real external demand signal (null when Census key/data unavailable)
+  market_signal: MarketSignal | null;
 };
 
 export interface MarketResult {
@@ -119,6 +141,30 @@ export async function generateMarketInsights(estimateId: string): Promise<Market
   const ourUnit = area > 0 ? total / area : null;
   const costUnit = area > 0 && ourCost > 0 ? ourCost / area : null;
 
+  // Real external signal: US Census building permits for the job's region.
+  const region = regionForState(estimate.state);
+  let marketSignal: MarketSignal | null = null;
+  try {
+    const pulse = await getPermitPulse(region);
+    const permits = pulse.series?.find((s) => s.metric === "permits_total") ?? null;
+    if (permits && permits.yoyPct != null) {
+      const yoy = permits.yoyPct;
+      marketSignal = {
+        source: "us_census_permits",
+        region: pulse.geo,
+        region_label: REGION_LABEL[pulse.geo],
+        permits_yoy_pct: yoy,
+        trend: yoy > 2 ? "expanding" : yoy < -2 ? "cooling" : "flat",
+        updated: pulse.updated,
+      };
+    }
+  } catch {
+    // permits are a bonus signal — never block the analysis on them
+  }
+  const signalText = marketSignal
+    ? `REAL MARKET SIGNAL — US Census building permits, ${marketSignal.region_label} region (${marketSignal.updated ?? "latest"}): total permits ${marketSignal.permits_yoy_pct >= 0 ? "+" : ""}${marketSignal.permits_yoy_pct}% year-over-year → demand is ${marketSignal.trend}. Reflect this in positioning: an expanding market means less price pressure and room to hold margin; a cooling market means more competition and tighter bids.`
+    : "REAL MARKET SIGNAL: no live permit data for this region — rely on the cost basis above.";
+
   try {
     const { output } = await generateText({
       model: "anthropic/claude-sonnet-5",
@@ -140,6 +186,8 @@ GROUND TRUTH — our deterministic estimate (built from unit costs with regional
 
 Line items:
 ${(items ?? []).map((i) => `- [${i.kind}] ${i.description}: ${i.qty} ${i.unit}`).join("\n")}
+
+${signalText}
 
 Produce market pricing CONSISTENT with the ground truth above (treat our total as a well-built mid-market bid; competitors deviate by realistic multipliers, not random numbers):
 1. region: typical TOTAL range from similar local contractors in/around ${location} (usually our total ×0.85–1.15)
@@ -164,6 +212,7 @@ Base numbers on US construction pricing for this trade and region; planning esti
       our_unit_price: ourUnit != null ? Math.round(ourUnit * 100) / 100 : null,
       our_cost: Math.round(ourCost),
       cost_floor: costFloor,
+      market_signal: marketSignal,
     };
 
     await supabase

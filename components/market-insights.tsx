@@ -11,8 +11,19 @@ import {
   generateMarketInsights,
   type MarketInsights as Insights,
 } from "@/app/actions/market";
-import { Sparkles, Loader2, RefreshCw, KeyRound, TrendingUp } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, KeyRound, TrendingUp, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const SIGNAL_L: Record<string, string> = {
+  en: "Live demand · US Census permits",
+  pt: "Demanda real · Census permits (EUA)",
+  es: "Demanda real · Census permits (EE.UU.)",
+};
+const TREND_L: Record<"expanding" | "cooling" | "flat", Record<string, string>> = {
+  expanding: { en: "Expanding", pt: "Aquecendo", es: "En expansión" },
+  cooling: { en: "Cooling", pt: "Esfriando", es: "Enfriando" },
+  flat: { en: "Flat", pt: "Estável", es: "Estable" },
+};
 
 const REGION_L: Record<string, string> = { en: "region", pt: "região", es: "región" };
 const FLOOR_L: Record<string, string> = {
@@ -112,6 +123,38 @@ export function MarketInsightsCard({ estimateId, initial }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        {/* Real external signal — US Census building permits */}
+        {insights.market_signal && (
+          <div className="flex items-center gap-2.5 rounded-xl border bg-muted/40 px-3 py-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <Activity className="h-4 w-4 text-primary" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {SIGNAL_L[lang] ?? SIGNAL_L.en}
+              </p>
+              <p className="text-xs font-medium">
+                {insights.market_signal.region_label} ·{" "}
+                {insights.market_signal.permits_yoy_pct >= 0 ? "+" : ""}
+                {insights.market_signal.permits_yoy_pct}% YoY
+                {insights.market_signal.updated ? ` · ${insights.market_signal.updated}` : ""}
+              </p>
+            </div>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                insights.market_signal.trend === "expanding"
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                  : insights.market_signal.trend === "cooling"
+                    ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                    : "bg-muted text-muted-foreground"
+              )}
+            >
+              {TREND_L[insights.market_signal.trend][lang] ?? TREND_L[insights.market_signal.trend].en}
+            </span>
+          </div>
+        )}
+
         {/* Range bars vs our price */}
         <section className="space-y-3">
           {ranges.map(({ label, r }) => (
