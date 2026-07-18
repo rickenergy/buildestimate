@@ -35,6 +35,7 @@ import {
 } from "@/app/actions/estimates";
 import { ArrowLeft, Plus, Trash2, FileText, Users, CalendarDays, Ruler } from "lucide-react";
 import { CatalogPicker } from "@/components/catalog-picker";
+import { PaymentSchedulePicker } from "@/components/payment-schedule-picker";
 import { cn } from "@/lib/utils";
 import type { Estimate, EstimateItem, ItemKind } from "@/lib/types";
 import type { PriceEntry } from "@/lib/takeoff/types";
@@ -222,6 +223,8 @@ export function EstimateEditor({ estimate, items, minMarginPct, catalog }: Props
           </div>
         </CardContent>
       </Card>
+
+      <PaymentSchedulePicker estimateId={estimate.id} value={estimate.payment_schedule_preset} />
 
       <Button asChild size="lg" className="h-12" disabled={pending}>
         <Link href={`/estimate/${estimate.id}/proposal`}>

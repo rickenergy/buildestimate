@@ -575,7 +575,7 @@ export const es: Dict = {
 
   clients: {
     title: "Clientes",
-    add: "Agregar cliente",
+    add: "Agregar lead",
     name: "Nombre",
     phone: "Teléfono",
     email: "Email",
@@ -588,7 +588,7 @@ export const es: Dict = {
       lead: "Lead",
       estimate_sent: "Presupuesto enviado",
       follow_up: "Seguimiento",
-      approved: "Aprobado",
+      approved: "Cliente",
       lost: "Perdido",
     },
   },

@@ -573,7 +573,7 @@ export const en = {
 
   clients: {
     title: "Clients",
-    add: "Add client",
+    add: "Add lead",
     name: "Name",
     phone: "Phone",
     email: "Email",
@@ -586,7 +586,7 @@ export const en = {
       lead: "Lead",
       estimate_sent: "Estimate sent",
       follow_up: "Follow up",
-      approved: "Approved",
+      approved: "Customer",
       lost: "Lost",
     },
   },

@@ -5,7 +5,19 @@ import { Button } from "@/components/ui/button";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import { ArrowLeft, Printer } from "lucide-react";
+import { paymentPreset } from "@/lib/payment-schedules";
 import type { Estimate, EstimateItem, Profile } from "@/lib/types";
+
+interface LicenseInfo {
+  license_type: string | null;
+  license_number: string;
+  state: string | null;
+}
+interface InsuranceInfo {
+  provider: string | null;
+  policy_number: string | null;
+  coverage_amount: number | null;
+}
 
 /** Profile fields the printable estimate needs (company identity + branding). */
 export type PrintProfile = Pick<
@@ -28,10 +40,12 @@ interface Props {
   };
   items: EstimateItem[];
   profile: PrintProfile;
+  licenses?: LicenseInfo[];
+  insurances?: InsuranceInfo[];
 }
 
 /** Print-ready output of every estimate figure — browser print → PDF. */
-export function EstimatePrintView({ estimate, items, profile }: Props) {
+export function EstimatePrintView({ estimate, items, profile, licenses = [], insurances = [] }: Props) {
   const t = useDict();
   const lang = useLang();
 
@@ -48,6 +62,7 @@ export function EstimatePrintView({ estimate, items, profile }: Props) {
   const preTax = subtotal + overhead + profit;
   const tax = preTax * (Number(estimate.tax_pct) / 100);
   const total = Number(estimate.total);
+  const schedule = paymentPreset(estimate.payment_schedule_preset);
 
   const meta = (estimate.project_meta ?? {}) as {
     location_label?: string;
@@ -207,10 +222,37 @@ export function EstimatePrintView({ estimate, items, profile }: Props) {
         <h2 className="mb-1 border-b text-xs font-semibold uppercase text-neutral-500">
           {t.analysis.paymentsTitle}
         </h2>
-        <Row label={`${t.analysis.deposit} (40%)`} value={formatMoney(total * 0.4, lang)} />
-        <Row label={`${t.analysis.progress} (40%)`} value={formatMoney(total * 0.4, lang)} />
-        <Row label={`${t.analysis.final} (20%)`} value={formatMoney(total * 0.2, lang)} />
+        {schedule.splits.map((s, i) => (
+          <Row
+            key={i}
+            label={`${s.label[lang] ?? s.label.en} (${s.pct}%)`}
+            value={formatMoney(total * (s.pct / 100), lang)}
+          />
+        ))}
       </section>
+
+      {/* required company info footer */}
+      {(profile.license_number || licenses.length > 0 || insurances.length > 0) && (
+        <section className="mb-4 rounded border border-neutral-200 p-3 text-[11px] text-neutral-600">
+          {licenses.length > 0 ? (
+            licenses.map((l, i) => (
+              <p key={i}>
+                {l.license_type ? `${l.license_type} ` : ""}License #{l.license_number}
+                {l.state ? ` (${l.state})` : ""}
+              </p>
+            ))
+          ) : profile.license_number ? (
+            <p>License #{profile.license_number}</p>
+          ) : null}
+          {insurances.map((ins, i) => (
+            <p key={i}>
+              {ins.provider ? `${ins.provider} — ` : ""}
+              {ins.policy_number ? `Policy #${ins.policy_number}` : ""}
+              {ins.coverage_amount ? ` — ${formatMoney(Number(ins.coverage_amount), lang)} coverage` : ""}
+            </p>
+          ))}
+        </section>
+      )}
 
       <footer className="border-t pt-3 text-xs text-neutral-500">
         <p>{t.share.printFooter}</p>

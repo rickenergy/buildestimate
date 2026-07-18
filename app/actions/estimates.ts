@@ -421,10 +421,28 @@ export async function updateEstimatePcts(
 
 export async function updateEstimateStatus(estimateId: string, status: string) {
   const supabase = await createClient();
-  await supabase.from("estimates").update({ status }).eq("id", estimateId);
+  const { data } = await supabase
+    .from("estimates")
+    .update({ status })
+    .eq("id", estimateId)
+    .select("client_id")
+    .single();
+
+  // A won job promotes the lead to a customer automatically.
+  if ((status === "approved" || status === "job") && data?.client_id) {
+    await supabase.from("clients").update({ status: "approved" }).eq("id", data.client_id);
+    revalidatePath("/clients");
+  }
+
   revalidatePath(`/estimate/${estimateId}`);
   revalidatePath("/estimates");
   revalidatePath("/home");
+}
+
+export async function updatePaymentSchedulePreset(estimateId: string, preset: string) {
+  const supabase = await createClient();
+  await supabase.from("estimates").update({ payment_schedule_preset: preset }).eq("id", estimateId);
+  revalidatePath(`/estimate/${estimateId}`);
 }
 
 export async function deleteEstimate(estimateId: string) {

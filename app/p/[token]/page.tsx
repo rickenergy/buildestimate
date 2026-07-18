@@ -3,6 +3,7 @@ import { getDict } from "@/lib/i18n";
 import { formatMoney, formatDate } from "@/lib/format";
 import { ProposalAccept } from "@/components/proposal-accept";
 import { CircleCheck, Clock, MapPin, Ruler, ShieldCheck, Users } from "lucide-react";
+import { paymentPreset } from "@/lib/payment-schedules";
 
 interface ProposalItem {
   kind: string;
@@ -30,6 +31,8 @@ interface ProposalData {
     location: string | null;
     area_sqft: number | null;
     crew_size: number | null;
+    payment_schedule_preset: string | null;
+    show_rules: boolean | null;
   };
   contractor: {
     company_name: string;
@@ -43,6 +46,8 @@ interface ProposalData {
     company_email: string | null;
     license_number: string | null;
     language: string;
+    licenses: { license_type: string | null; license_number: string; state: string | null }[];
+    insurances: { provider: string | null; policy_number: string | null; coverage_amount: number | null }[];
   };
   client: { name: string; address: string | null } | null;
   items: ProposalItem[];
@@ -234,6 +239,19 @@ export default async function PublicProposalPage({
           </Block>
         )}
 
+        {/* ── Payment schedule ───────────────────────────────────── */}
+        {estimate.payment_schedule_preset !== undefined && (
+          <Block title={t.analysis.paymentsTitle}>
+            <div className="flex flex-wrap gap-2">
+              {paymentPreset(estimate.payment_schedule_preset).splits.map((s, i) => (
+                <span key={i} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-700">
+                  {(s.label[lang as "en" | "pt" | "es"] ?? s.label.en)} — {s.pct}%
+                </span>
+              ))}
+            </div>
+          </Block>
+        )}
+
         {proposal.exclusions && (
           <Block title={t.proposal.exclusions}>
             <p className="whitespace-pre-wrap leading-relaxed text-neutral-600">
@@ -257,9 +275,22 @@ export default async function PublicProposalPage({
             {contractor.company_address && <p>{contractor.company_address}</p>}
             {contractor.phone && <p>{contractor.phone}</p>}
             {contractor.company_email && <p>{contractor.company_email}</p>}
-            {contractor.license_number && (
-              <p className="font-medium text-neutral-700">Lic. {contractor.license_number}</p>
-            )}
+            {contractor.licenses.length > 0
+              ? contractor.licenses.map((l, i) => (
+                  <p key={i} className="font-medium text-neutral-700">
+                    {l.license_type ? `${l.license_type} ` : ""}Lic. {l.license_number}
+                    {l.state ? ` (${l.state})` : ""}
+                  </p>
+                ))
+              : contractor.license_number && (
+                  <p className="font-medium text-neutral-700">Lic. {contractor.license_number}</p>
+                )}
+            {contractor.insurances.map((ins, i) => (
+              <p key={i} className="text-neutral-500">
+                {ins.provider ?? ""} {ins.policy_number ? `#${ins.policy_number}` : ""}
+                {ins.coverage_amount ? ` — ${formatMoney(Number(ins.coverage_amount), lang)}` : ""}
+              </p>
+            ))}
           </div>
           {proposal.valid_until && (
             <p className="mt-3 text-xs text-neutral-500">

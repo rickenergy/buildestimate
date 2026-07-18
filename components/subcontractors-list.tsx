@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
 import { upsertSubcontractor, deleteSubcontractor } from "@/app/actions/network";
-import { HardHat, Phone, Mail, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { HardHat, Phone, Mail, Plus, Trash2, ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { Subcontractor } from "@/lib/types";
 
@@ -37,6 +37,11 @@ const L = {
   trade: { en: "Trade", pt: "Especialidade", es: "Oficio" },
   email: { en: "Email", pt: "Email", es: "Email" },
   phone: { en: "Phone", pt: "Telefone", es: "Teléfono" },
+  license: { en: "License #", pt: "Nº da licença", es: "Nº de licencia" },
+  insProvider: { en: "Insurance provider", pt: "Seguradora", es: "Aseguradora" },
+  insPolicy: { en: "Policy #", pt: "Nº da apólice", es: "Nº de póliza" },
+  insExpires: { en: "Insurance expires", pt: "Seguro expira em", es: "Seguro vence" },
+  verified: { en: "Licensed & insured", pt: "Licenciado e segurado", es: "Con licencia y seguro" },
   notes: { en: "Notes", pt: "Notas", es: "Notas" },
   save: { en: "Save", pt: "Salvar", es: "Guardar" },
   edit: { en: "Edit", pt: "Editar", es: "Editar" },
@@ -98,6 +103,11 @@ export function SubcontractorsList({ rows }: { rows: Subcontractor[] }) {
                         <Mail className="h-3 w-3" /> {s.email}
                       </span>
                     )}
+                    {s.license_number && s.insurance_provider && (
+                      <span className="flex items-center gap-1 rounded bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-600">
+                        <ShieldCheck className="h-3 w-3" /> {tr(L.verified)}
+                      </span>
+                    )}
                   </p>
                 </button>
                 <Button
@@ -154,7 +164,11 @@ function SubDialog({
   onSaved: () => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState({ name: "", company: "", trade: "", email: "", phone: "", notes: "" });
+  const [form, setForm] = useState({
+    name: "", company: "", trade: "", email: "", phone: "",
+    license_number: "", insurance_provider: "", insurance_policy_number: "", insurance_expires: "",
+    notes: "",
+  });
   const [key, setKey] = useState("");
 
   const itemKey = initial?.id ?? (open ? "new" : "");
@@ -166,6 +180,10 @@ function SubDialog({
       trade: initial?.trade ?? "",
       email: initial?.email ?? "",
       phone: initial?.phone ?? "",
+      license_number: initial?.license_number ?? "",
+      insurance_provider: initial?.insurance_provider ?? "",
+      insurance_policy_number: initial?.insurance_policy_number ?? "",
+      insurance_expires: initial?.insurance_expires ?? "",
       notes: initial?.notes ?? "",
     });
   }
@@ -196,6 +214,20 @@ function SubDialog({
           </Field>
           <Field label={tr(L.email)}>
             <Input value={form.email} onChange={set("email")} type="email" />
+          </Field>
+          <Field label={tr(L.license)}>
+            <Input value={form.license_number} onChange={set("license_number")} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={tr(L.insProvider)}>
+              <Input value={form.insurance_provider} onChange={set("insurance_provider")} />
+            </Field>
+            <Field label={tr(L.insPolicy)}>
+              <Input value={form.insurance_policy_number} onChange={set("insurance_policy_number")} />
+            </Field>
+          </div>
+          <Field label={tr(L.insExpires)}>
+            <Input type="date" value={form.insurance_expires} onChange={set("insurance_expires")} />
           </Field>
           <Field label={tr(L.notes)}>
             <Textarea value={form.notes} onChange={set("notes")} rows={2} />

@@ -65,6 +65,10 @@ export interface Subcontractor {
   trade: string | null;
   email: string | null;
   phone: string | null;
+  license_number: string | null;
+  insurance_provider: string | null;
+  insurance_policy_number: string | null;
+  insurance_expires: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -99,6 +103,26 @@ export interface Incident {
   created_at: string;
   resolved_at: string | null;
   estimates?: { title: string } | null;
+}
+
+export interface CompanyLicense {
+  id: string;
+  user_id: string;
+  license_type: string | null;
+  license_number: string;
+  state: string | null;
+  expires: string | null;
+  created_at: string;
+}
+
+export interface CompanyInsurance {
+  id: string;
+  user_id: string;
+  provider: string | null;
+  policy_number: string | null;
+  coverage_amount: number | null;
+  expires: string | null;
+  created_at: string;
 }
 
 export interface Employee {
@@ -175,6 +199,8 @@ export interface Estimate {
   estimate_type: EstimateType | null;
   materials_included: boolean | null;
   advisor_answers: Record<string, unknown> | null;
+  payment_schedule_preset: string | null;
+  show_rules: boolean | null;
   created_at: string;
   updated_at: string;
 }

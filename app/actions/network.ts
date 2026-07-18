@@ -20,6 +20,10 @@ export async function upsertSubcontractor(fields: {
   trade?: string;
   email?: string;
   phone?: string;
+  license_number?: string;
+  insurance_provider?: string;
+  insurance_policy_number?: string;
+  insurance_expires?: string;
   notes?: string;
 }) {
   const { supabase, user } = await requireUser();
@@ -31,6 +35,10 @@ export async function upsertSubcontractor(fields: {
     trade: fields.trade?.trim() || null,
     email: fields.email?.trim() || null,
     phone: fields.phone?.trim() || null,
+    license_number: fields.license_number?.trim() || null,
+    insurance_provider: fields.insurance_provider?.trim() || null,
+    insurance_policy_number: fields.insurance_policy_number?.trim() || null,
+    insurance_expires: fields.insurance_expires || null,
     notes: fields.notes?.trim() || null,
   };
   if (fields.id) {
@@ -199,4 +207,52 @@ export async function deleteStore(id: string) {
   const { supabase, user } = await requireUser();
   await supabase.from("retail_stores").delete().eq("id", id).eq("user_id", user.id);
   revalidatePath("/retail-stores");
+}
+
+// ── Company licenses & insurances (multiple entries) ────────────
+export async function addCompanyLicense(fields: {
+  license_type?: string;
+  license_number: string;
+  state?: string;
+  expires?: string;
+}) {
+  const { supabase, user } = await requireUser();
+  if (!fields.license_number.trim()) throw new Error("License number required");
+  await supabase.from("company_licenses").insert({
+    user_id: user.id,
+    license_type: fields.license_type?.trim() || null,
+    license_number: fields.license_number.trim(),
+    state: fields.state?.trim() || null,
+    expires: fields.expires || null,
+  });
+  revalidatePath("/settings");
+}
+
+export async function deleteCompanyLicense(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("company_licenses").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/settings");
+}
+
+export async function addCompanyInsurance(fields: {
+  provider?: string;
+  policy_number?: string;
+  coverage_amount?: number | null;
+  expires?: string;
+}) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("company_insurances").insert({
+    user_id: user.id,
+    provider: fields.provider?.trim() || null,
+    policy_number: fields.policy_number?.trim() || null,
+    coverage_amount: fields.coverage_amount ?? null,
+    expires: fields.expires || null,
+  });
+  revalidatePath("/settings");
+}
+
+export async function deleteCompanyInsurance(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("company_insurances").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/settings");
 }
