@@ -173,6 +173,42 @@ export async function deleteInventoryItem(id: string) {
   revalidatePath("/inventory");
 }
 
+// ── Item store prices (cheapest per item) ──────────────────────
+export async function upsertItemStorePrice(fields: {
+  id?: string;
+  inventory_item_id: string;
+  store_id?: string | null;
+  store_name: string;
+  price: number;
+  unit?: string | null;
+  url?: string | null;
+}) {
+  const { supabase, user } = await requireUser();
+  if (!fields.inventory_item_id) throw new Error("Item required");
+  if (!fields.store_name.trim()) throw new Error("Store required");
+  if (!(fields.price >= 0)) throw new Error("Valid price required");
+  const row = {
+    user_id: user.id,
+    inventory_item_id: fields.inventory_item_id,
+    store_id: fields.store_id || null,
+    store_name: fields.store_name.trim(),
+    price: fields.price,
+    unit: fields.unit?.trim() || null,
+    url: fields.url?.trim() || null,
+  };
+  const { error } = fields.id
+    ? await supabase.from("item_store_prices").update(row).eq("id", fields.id).eq("user_id", user.id)
+    : await supabase.from("item_store_prices").insert(row);
+  if (error) throw new Error(error.message);
+  revalidatePath("/inventory");
+}
+
+export async function deleteItemStorePrice(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("item_store_prices").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/inventory");
+}
+
 // ── Employees ──────────────────────────────────────────────────
 export async function upsertEmployee(fields: {
   id?: string;

@@ -24,14 +24,32 @@ import {
 } from "@/components/ui/select";
 import { useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
-import { upsertInventoryItem, deleteInventoryItem } from "@/app/actions/network";
-import { Package, Wrench, Plus, Trash2, ArrowLeft, TriangleAlert, ShoppingCart, Download } from "lucide-react";
+import {
+  upsertInventoryItem,
+  deleteInventoryItem,
+  upsertItemStorePrice,
+  deleteItemStorePrice,
+} from "@/app/actions/network";
+import {
+  Package,
+  Wrench,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  TriangleAlert,
+  ShoppingCart,
+  Download,
+  Store,
+  ExternalLink,
+  BadgeDollarSign,
+} from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
-import type { InventoryItem } from "@/lib/types";
+import type { InventoryItem, InventoryItemWithPrices, ItemStorePrice, RetailStore } from "@/lib/types";
 
 type Lang = "en" | "pt" | "es";
 
 const CATEGORIES = ["material", "tool", "machine", "equipment", "consumable"] as const;
+const CUSTOM_STORE = "__custom__";
 
 const L = {
   title: { en: "Inventory", pt: "Estoque / Inventário", es: "Inventario" },
@@ -57,6 +75,31 @@ const L = {
   reorder: { en: "Buy", pt: "Comprar", es: "Comprar" },
   value: { en: "Total value", pt: "Valor total", es: "Valor total" },
   back: { en: "Back to settings", pt: "Voltar às configurações", es: "Volver a ajustes" },
+  // store prices
+  prices: { en: "Store prices", pt: "Preços por loja", es: "Precios por tienda" },
+  pricesHint: {
+    en: "Compare the same item across stores — the cheapest is highlighted.",
+    pt: "Compare o mesmo item entre lojas — o mais barato fica em destaque.",
+    es: "Compara el mismo artículo entre tiendas — el más barato se resalta.",
+  },
+  cheapest: { en: "Cheapest", pt: "Mais barato", es: "Más barato" },
+  store: { en: "Store", pt: "Loja", es: "Tienda" },
+  price: { en: "Price", pt: "Preço", es: "Precio" },
+  link: { en: "Product link (optional)", pt: "Link do produto (opcional)", es: "Enlace del producto (opcional)" },
+  addPrice: { en: "Add price", pt: "Adicionar preço", es: "Agregar precio" },
+  typeStore: { en: "Type a store name", pt: "Digite o nome da loja", es: "Escribe el nombre de la tienda" },
+  otherStore: { en: "Other store…", pt: "Outra loja…", es: "Otra tienda…" },
+  noPrices: {
+    en: "No store prices yet. Add one to compare.",
+    pt: "Nenhum preço de loja ainda. Adicione um para comparar.",
+    es: "Aún no hay precios. Agrega uno para comparar.",
+  },
+  saveFirst: {
+    en: "Save the item first to add store prices.",
+    pt: "Salve o item primeiro para adicionar preços por loja.",
+    es: "Guarda el artículo primero para agregar precios.",
+  },
+  atStores: { en: "stores", pt: "lojas", es: "tiendas" },
   cat: {
     material: { en: "Material", pt: "Material", es: "Material" },
     tool: { en: "Tool", pt: "Ferramenta", es: "Herramienta" },
@@ -66,16 +109,23 @@ const L = {
   },
 } as const;
 
-export function InventoryList({ rows }: { rows: InventoryItem[] }) {
+export function InventoryList({
+  rows,
+  stores,
+}: {
+  rows: InventoryItemWithPrices[];
+  stores: RetailStore[];
+}) {
   const lang = useLang() as Lang;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [editing, setEditing] = useState<InventoryItem | null>(null);
+  const [editing, setEditing] = useState<InventoryItemWithPrices | null>(null);
   const [adding, setAdding] = useState(false);
 
+  // Total value uses the cheapest known store price, falling back to unit_cost.
   const totalValue = useMemo(
-    () => rows.reduce((s, r) => s + Number(r.quantity) * Number(r.unit_cost ?? 0), 0),
+    () => rows.reduce((s, r) => s + Number(r.quantity) * bestUnitCost(r), 0),
     [rows]
   );
 
@@ -86,10 +136,10 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
     });
   }
 
-  const isLow = (r: InventoryItem) =>
+  const isLow = (r: InventoryItemWithPrices) =>
     r.min_quantity != null && Number(r.quantity) <= Number(r.min_quantity);
   // Restock target = 2× the minimum; recommend buying the gap.
-  const reorderQty = (r: InventoryItem) =>
+  const reorderQty = (r: InventoryItemWithPrices) =>
     r.min_quantity != null ? Math.max(0, Math.round(Number(r.min_quantity) * 2 - Number(r.quantity))) : 0;
 
   return (
@@ -101,7 +151,7 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
         </div>
         <div className="flex gap-2">
           {rows.length > 0 && (
-            <Button size="icon" variant="outline" className="shrink-0" aria-label="export csv" onClick={() => exportToCsv("inventory", rows)}>
+            <Button size="icon" variant="outline" className="shrink-0" aria-label="export csv" onClick={() => exportToCsv("inventory", rows.map(stripPrices))}>
               <Download className="h-4 w-4" />
             </Button>
           )}
@@ -122,55 +172,71 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
         <p className="py-8 text-center text-sm text-muted-foreground">{tr(L.empty)}</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {rows.map((r, i) => (
-            <Card key={r.id} className="animate-fade-up" style={{ ["--i" as string]: Math.min(i, 8) }}>
-              <CardContent className="flex items-center gap-3 p-3">
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                    r.is_equipment ? "bg-violet-500/10 text-violet-600 dark:text-violet-400" : "bg-primary/10 text-primary"
-                  }`}
-                >
-                  {r.is_equipment ? <Wrench className="h-5 w-5" /> : <Package className="h-5 w-5" />}
-                </span>
-                <button className="min-w-0 flex-1 text-left" onClick={() => setEditing(r)}>
-                  <p className="truncate font-medium">
-                    {r.name}
-                    {r.category ? (
-                      <span className="text-muted-foreground"> · {tr(L.cat[r.category as keyof typeof L.cat] ?? L.cat.material)}</span>
-                    ) : ""}
-                  </p>
-                  <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {Number(r.quantity)}
-                      {r.unit ? ` ${r.unit}` : ""}
-                    </span>
-                    {r.unit_cost != null && <span>· {formatMoney(Number(r.unit_cost), lang)}</span>}
-                    {isLow(r) && (
-                      <span className="flex items-center gap-0.5 rounded bg-rose-500/15 px-1 py-0.5 text-[10px] font-semibold text-rose-600">
-                        <TriangleAlert className="h-3 w-3" /> {tr(L.low)}
-                      </span>
-                    )}
-                  </p>
-                  {isLow(r) && reorderQty(r) > 0 && (
-                    <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-primary">
-                      <ShoppingCart className="h-3 w-3" />
-                      {tr(L.reorder)} ~{reorderQty(r)} {r.unit ?? ""}
-                      {r.supplier ? ` · ${r.supplier}` : ""}
+          {rows.map((r, i) => {
+            const cheapest = r.prices[0]; // pre-sorted ascending by the loader
+            return (
+              <Card key={r.id} className="animate-fade-up" style={{ ["--i" as string]: Math.min(i, 8) }}>
+                <CardContent className="flex items-center gap-3 p-3">
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                      r.is_equipment ? "bg-violet-500/10 text-violet-600 dark:text-violet-400" : "bg-primary/10 text-primary"
+                    }`}
+                  >
+                    {r.is_equipment ? <Wrench className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+                  </span>
+                  <button className="min-w-0 flex-1 text-left" onClick={() => setEditing(r)}>
+                    <p className="truncate font-medium">
+                      {r.name}
+                      {r.category ? (
+                        <span className="text-muted-foreground"> · {tr(L.cat[r.category as keyof typeof L.cat] ?? L.cat.material)}</span>
+                      ) : ""}
                     </p>
-                  )}
-                </button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 shrink-0 text-muted-foreground"
-                  aria-label="delete"
-                  onClick={() => remove(r.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                    <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {Number(r.quantity)}
+                        {r.unit ? ` ${r.unit}` : ""}
+                      </span>
+                      {cheapest ? (
+                        <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-0.5 rounded bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <BadgeDollarSign className="h-3 w-3" /> {tr(L.cheapest)}
+                          </span>
+                          <span className="font-medium text-foreground">{formatMoney(Number(cheapest.price), lang)}</span>
+                          <span>· {cheapest.store_name}</span>
+                          {r.prices.length > 1 && (
+                            <span className="text-muted-foreground/70">· {r.prices.length} {tr(L.atStores)}</span>
+                          )}
+                        </span>
+                      ) : (
+                        r.unit_cost != null && <span>· {formatMoney(Number(r.unit_cost), lang)}</span>
+                      )}
+                      {isLow(r) && (
+                        <span className="flex items-center gap-0.5 rounded bg-rose-500/15 px-1 py-0.5 text-[10px] font-semibold text-rose-600">
+                          <TriangleAlert className="h-3 w-3" /> {tr(L.low)}
+                        </span>
+                      )}
+                    </p>
+                    {isLow(r) && reorderQty(r) > 0 && (
+                      <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-primary">
+                        <ShoppingCart className="h-3 w-3" />
+                        {tr(L.reorder)} ~{reorderQty(r)} {r.unit ?? ""}
+                        {cheapest ? ` · ${cheapest.store_name}` : r.supplier ? ` · ${r.supplier}` : ""}
+                      </p>
+                    )}
+                  </button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0 text-muted-foreground"
+                    aria-label="delete"
+                    onClick={() => remove(r.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -184,7 +250,9 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
       <ItemDialog
         open={adding || editing !== null}
         initial={editing ?? undefined}
+        stores={stores}
         tr={tr}
+        lang={lang}
         onClose={() => {
           setAdding(false);
           setEditing(null);
@@ -199,16 +267,33 @@ export function InventoryList({ rows }: { rows: InventoryItem[] }) {
   );
 }
 
+/** Drop the nested `prices` array so the row is a flat object for CSV export. */
+function stripPrices(r: InventoryItemWithPrices): InventoryItem {
+  const { prices, ...rest } = r;
+  void prices;
+  return rest;
+}
+
+/** Cheapest store price if any, else the item's own unit_cost, else 0. */
+function bestUnitCost(r: InventoryItemWithPrices): number {
+  if (r.prices.length > 0) return Number(r.prices[0].price);
+  return Number(r.unit_cost ?? 0);
+}
+
 function ItemDialog({
   open,
   initial,
+  stores,
   tr,
+  lang,
   onClose,
   onSaved,
 }: {
   open: boolean;
-  initial?: InventoryItem;
+  initial?: InventoryItemWithPrices;
+  stores: RetailStore[];
   tr: (m: Record<Lang, string>) => string;
+  lang: Lang;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -307,6 +392,28 @@ function ItemDialog({
           <Field label={tr(L.notes)}>
             <Textarea value={form.notes} onChange={set("notes")} rows={2} />
           </Field>
+
+          {/* Store prices — only when the item already exists (needs its id). */}
+          <div className="mt-1 border-t pt-3">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{tr(L.prices)}</span>
+            </div>
+            <p className="mb-2 text-xs text-muted-foreground">{tr(L.pricesHint)}</p>
+            {initial?.id ? (
+              <StorePrices
+                itemId={initial.id}
+                itemUnit={initial.unit}
+                prices={initial.prices}
+                stores={stores}
+                tr={tr}
+                lang={lang}
+                onChanged={onSaved}
+              />
+            ) : (
+              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">{tr(L.saveFirst)}</p>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button
@@ -336,6 +443,166 @@ function ItemDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StorePrices({
+  itemId,
+  itemUnit,
+  prices,
+  stores,
+  tr,
+  lang,
+  onChanged,
+}: {
+  itemId: string;
+  itemUnit: string | null;
+  prices: ItemStorePrice[];
+  stores: RetailStore[];
+  tr: (m: Record<Lang, string>) => string;
+  lang: Lang;
+  onChanged: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  // Select value: a store id, CUSTOM_STORE, or "" (nothing chosen)
+  const [storeSel, setStoreSel] = useState<string>("");
+  const [storeName, setStoreName] = useState("");
+  const [price, setPrice] = useState("");
+  const [url, setUrl] = useState("");
+
+  const cheapestId = prices[0]?.id;
+
+  function resetForm() {
+    setStoreSel("");
+    setStoreName("");
+    setPrice("");
+    setUrl("");
+  }
+
+  function onStoreSelect(v: string) {
+    setStoreSel(v);
+    if (v === CUSTOM_STORE) {
+      setStoreName("");
+    } else {
+      setStoreName(stores.find((s) => s.id === v)?.name ?? "");
+    }
+  }
+
+  const canAdd = storeName.trim().length > 0 && Number(price) >= 0 && price !== "";
+
+  function add() {
+    if (!canAdd) return;
+    startTransition(async () => {
+      await upsertItemStorePrice({
+        inventory_item_id: itemId,
+        store_id: storeSel && storeSel !== CUSTOM_STORE ? storeSel : null,
+        store_name: storeName,
+        price: Number(price),
+        unit: itemUnit,
+        url: url,
+      });
+      resetForm();
+      router.refresh();
+      onChanged();
+    });
+  }
+
+  function remove(id: string) {
+    startTransition(async () => {
+      await deleteItemStorePrice(id);
+      router.refresh();
+      onChanged();
+    });
+  }
+
+  return (
+    <div className="grid gap-2">
+      {prices.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{tr(L.noPrices)}</p>
+      ) : (
+        <ul className="grid gap-1.5">
+          {prices.map((p) => (
+            <li
+              key={p.id}
+              className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm ${
+                p.id === cheapestId ? "border-emerald-500/40 bg-emerald-500/5" : ""
+              }`}
+            >
+              <span className="min-w-0 flex-1 truncate">
+                {p.store_name}
+                {p.url ? (
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 inline-flex text-muted-foreground hover:text-primary"
+                    aria-label="open link"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
+              </span>
+              {p.id === cheapestId && prices.length > 1 && (
+                <span className="rounded bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  {tr(L.cheapest)}
+                </span>
+              )}
+              <span className="font-medium">{formatMoney(Number(p.price), lang)}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0 text-muted-foreground"
+                aria-label="delete price"
+                disabled={pending}
+                onClick={() => remove(p.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Add price row */}
+      <div className="grid gap-2 rounded-lg bg-muted/40 p-2">
+        <div className="grid grid-cols-2 gap-2">
+          {stores.length > 0 ? (
+            <Select value={storeSel} onValueChange={onStoreSelect}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder={tr(L.store)} />
+              </SelectTrigger>
+              <SelectContent>
+                {stores.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={CUSTOM_STORE}>{tr(L.otherStore)}</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : null}
+          <Input
+            type="number"
+            inputMode="decimal"
+            placeholder={tr(L.price)}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+        </div>
+        {(stores.length === 0 || storeSel === CUSTOM_STORE) && (
+          <Input
+            placeholder={tr(L.typeStore)}
+            value={storeName}
+            onChange={(e) => setStoreName(e.target.value)}
+          />
+        )}
+        <Input placeholder={tr(L.link)} value={url} onChange={(e) => setUrl(e.target.value)} />
+        <Button size="sm" variant="outline" className="w-full" disabled={pending || !canAdd} onClick={add}>
+          <Plus className="mr-1 h-4 w-4" /> {tr(L.addPrice)}
+        </Button>
+      </div>
+    </div>
   );
 }
 

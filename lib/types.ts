@@ -169,6 +169,25 @@ export interface InventoryItem {
   updated_at: string;
 }
 
+/** A price for a given inventory item at a specific store. */
+export interface ItemStorePrice {
+  id: string;
+  user_id: string;
+  inventory_item_id: string;
+  store_id: string | null;
+  store_name: string;
+  price: number;
+  unit: string | null;
+  url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Inventory item enriched with its per-store prices (cheapest first). */
+export interface InventoryItemWithPrices extends InventoryItem {
+  prices: ItemStorePrice[];
+}
+
 export interface Estimate {
   id: string;
   user_id: string;
