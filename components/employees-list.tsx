@@ -16,9 +16,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
-import { upsertEmployee, deleteEmployee } from "@/app/actions/network";
+import { upsertEmployee, deleteEmployee, importEmployees } from "@/app/actions/network";
 import { User, Phone, Mail, Plus, Trash2, ArrowLeft, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
+import { CsvImport, type ImportField } from "@/components/csv-import";
+
+const IMPORT_FIELDS: ImportField[] = [
+  { key: "name", label: "Name", required: true, aliases: ["name", "nome", "nombre"] },
+  { key: "role", label: "Role", aliases: ["role", "função", "funcao", "cargo", "rol", "position"] },
+  { key: "phone", label: "Phone", aliases: ["phone", "telefone", "tel", "celular", "mobile"] },
+  { key: "email", label: "Email", aliases: ["email", "e-mail", "correo"] },
+  { key: "notes", label: "Notes", aliases: ["notes", "notas", "obs"] },
+];
 import type { Employee } from "@/lib/types";
 
 type Lang = "en" | "pt" | "es";
@@ -56,6 +65,7 @@ export function EmployeesList({ rows }: { rows: Employee[] }) {
           <p className="text-sm text-muted-foreground">{tr(L.subtitle)}</p>
         </div>
         <div className="flex gap-2">
+          <CsvImport fields={IMPORT_FIELDS} onImport={importEmployees} />
           {rows.length > 0 && (
             <Button size="icon" variant="outline" className="shrink-0" aria-label="export csv" onClick={() => exportToCsv("employees", rows)}>
               <Download className="h-4 w-4" />

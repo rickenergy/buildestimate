@@ -16,9 +16,19 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
-import { upsertStore, deleteStore } from "@/app/actions/network";
+import { upsertStore, deleteStore, importStores } from "@/app/actions/network";
 import { Store, Phone, Plus, Trash2, ArrowLeft, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
+import { CsvImport, type ImportField } from "@/components/csv-import";
+
+const IMPORT_FIELDS: ImportField[] = [
+  { key: "name", label: "Name", required: true, aliases: ["name", "nome", "nombre", "store", "loja", "tienda"] },
+  { key: "category", label: "Category", aliases: ["category", "categoria", "tipo"] },
+  { key: "phone", label: "Phone", aliases: ["phone", "telefone", "tel", "celular"] },
+  { key: "address", label: "Address", aliases: ["address", "endereço", "endereco", "direccion"] },
+  { key: "website", label: "Website", aliases: ["website", "site", "web", "url"] },
+  { key: "notes", label: "Notes", aliases: ["notes", "notas", "obs"] },
+];
 import type { RetailStore } from "@/lib/types";
 
 type Lang = "en" | "pt" | "es";
@@ -55,6 +65,7 @@ export function RetailStoresList({ rows }: { rows: RetailStore[] }) {
           <p className="text-sm text-muted-foreground">{tr(L.subtitle)}</p>
         </div>
         <div className="flex gap-2">
+          <CsvImport fields={IMPORT_FIELDS} onImport={importStores} />
           {rows.length > 0 && (
             <Button size="icon" variant="outline" className="shrink-0" aria-label="export csv" onClick={() => exportToCsv("retail-stores", rows)}>
               <Download className="h-4 w-4" />

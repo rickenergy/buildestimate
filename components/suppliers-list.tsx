@@ -15,9 +15,20 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
-import { upsertSupplier, deleteSupplier } from "@/app/actions/network";
+import { upsertSupplier, deleteSupplier, importSuppliers } from "@/app/actions/network";
 import { Truck, Phone, Mail, Plus, Trash2, ArrowLeft, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
+import { CsvImport, type ImportField } from "@/components/csv-import";
+
+const IMPORT_FIELDS: ImportField[] = [
+  { key: "name", label: "Name", required: true, aliases: ["name", "nome", "nombre", "fornecedor", "supplier"] },
+  { key: "category", label: "Category", aliases: ["category", "categoria", "tipo"] },
+  { key: "contact_name", label: "Contact", aliases: ["contact", "contato", "contacto"] },
+  { key: "phone", label: "Phone", aliases: ["phone", "telefone", "tel", "celular"] },
+  { key: "email", label: "Email", aliases: ["email", "e-mail", "correo"] },
+  { key: "address", label: "Address", aliases: ["address", "endereço", "endereco", "direccion"] },
+  { key: "notes", label: "Notes", aliases: ["notes", "notas", "obs"] },
+];
 import Link from "next/link";
 import type { Supplier } from "@/lib/types";
 
@@ -68,6 +79,7 @@ export function SuppliersList({ rows }: { rows: Supplier[] }) {
           <p className="text-sm text-muted-foreground">{tr(L.subtitle)}</p>
         </div>
         <div className="flex gap-2">
+          <CsvImport fields={IMPORT_FIELDS} onImport={importSuppliers} />
           {rows.length > 0 && (
             <Button size="icon" variant="outline" className="shrink-0" aria-label="export csv" onClick={() => exportToCsv("suppliers", rows)}>
               <Download className="h-4 w-4" />

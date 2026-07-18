@@ -12,6 +12,42 @@ async function requireUser() {
   return { supabase, user };
 }
 
+/** Generic bulk CSV import: keep only known columns, require `name`, cap 2000. */
+async function bulkImport(
+  table: string,
+  path: string,
+  columns: string[],
+  rows: Record<string, string>[]
+): Promise<{ inserted: number }> {
+  const { supabase, user } = await requireUser();
+  const clean = rows
+    .map((r) => {
+      const row: Record<string, unknown> = { user_id: user.id };
+      for (const c of columns) row[c] = r[c]?.trim() || null;
+      return row;
+    })
+    .filter((r) => typeof r.name === "string" && (r.name as string).length > 0)
+    .slice(0, 2000);
+  if (clean.length === 0) return { inserted: 0 };
+  const { error } = await supabase.from(table).insert(clean);
+  if (error) throw new Error(error.message);
+  revalidatePath(path);
+  return { inserted: clean.length };
+}
+
+export async function importSubcontractors(rows: Record<string, string>[]) {
+  return bulkImport("subcontractors", "/subcontractors", ["name", "company", "trade", "email", "phone", "notes"], rows);
+}
+export async function importSuppliers(rows: Record<string, string>[]) {
+  return bulkImport("suppliers", "/suppliers", ["name", "category", "contact_name", "email", "phone", "address", "notes"], rows);
+}
+export async function importEmployees(rows: Record<string, string>[]) {
+  return bulkImport("employees", "/employees", ["name", "role", "phone", "email", "notes"], rows);
+}
+export async function importStores(rows: Record<string, string>[]) {
+  return bulkImport("retail_stores", "/retail-stores", ["name", "category", "address", "phone", "website", "notes"], rows);
+}
+
 // ── Subcontractors ─────────────────────────────────────────────
 export async function upsertSubcontractor(fields: {
   id?: string;
