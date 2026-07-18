@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "@/components/settings-form";
 import { CompanyCredentials } from "@/components/company-credentials";
 import { PlanCard } from "@/components/premium-badge";
+import { PushToggle } from "@/components/push-toggle";
 import type { Profile, CompanyLicense, CompanyInsurance } from "@/lib/types";
 
 export default async function SettingsPage() {
@@ -21,6 +22,9 @@ export default async function SettingsPage() {
       <SettingsForm profile={profile as Profile} email={user!.email ?? ""} />
       <div className="mx-auto max-w-md px-4 pb-2 -mt-2">
         <PlanCard profile={profile as Profile} />
+      </div>
+      <div className="mx-auto max-w-md px-4 pb-2">
+        <PushToggle />
       </div>
       <div className="mx-auto max-w-md px-4 pb-6">
         <CompanyCredentials
