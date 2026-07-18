@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
 import { upsertSupplier, deleteSupplier } from "@/app/actions/network";
-import { Truck, Phone, Mail, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Truck, Phone, Mail, Plus, Trash2, ArrowLeft, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import Link from "next/link";
 import type { Supplier } from "@/lib/types";
 
@@ -66,9 +67,16 @@ export function SuppliersList({ rows }: { rows: Supplier[] }) {
           <h1 className="text-xl font-bold">{tr(L.title)}</h1>
           <p className="text-sm text-muted-foreground">{tr(L.subtitle)}</p>
         </div>
-        <Button size="sm" className="press rounded-full shadow-sm" onClick={() => setAdding(true)}>
-          <Plus className="mr-1 h-4 w-4" /> {tr(L.add)}
-        </Button>
+        <div className="flex gap-2">
+          {rows.length > 0 && (
+            <Button size="icon" variant="outline" className="shrink-0" aria-label="export csv" onClick={() => exportToCsv("suppliers", rows)}>
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
+          <Button size="sm" className="press rounded-full shadow-sm" onClick={() => setAdding(true)}>
+            <Plus className="mr-1 h-4 w-4" /> {tr(L.add)}
+          </Button>
+        </div>
       </header>
 
       {rows.length === 0 ? (

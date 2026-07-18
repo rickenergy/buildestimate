@@ -25,7 +25,8 @@ import {
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import { upsertClient, updateClientStatus } from "@/app/actions/clients";
-import { Plus, Phone, ChevronRight, AlertCircle } from "lucide-react";
+import { Plus, Phone, ChevronRight, AlertCircle, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import type { ClientRow, ClientStatus } from "@/lib/types";
 
 type ClientWithEstimates = ClientRow & {
@@ -49,9 +50,27 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
     <section className="flex flex-col gap-4">
       <header className="flex items-center justify-between animate-fade-up">
         <h1 className="text-xl font-bold">{t.clients.title}</h1>
-        <Button size="sm" className="press rounded-full shadow-sm" onClick={() => setAdding(true)}>
-          <Plus className="mr-1 h-4 w-4" /> {t.clients.add}
-        </Button>
+        <div className="flex gap-2">
+          {clients.length > 0 && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="shrink-0"
+              aria-label="export csv"
+              onClick={() =>
+                exportToCsv(
+                  "clients",
+                  clients.map(({ estimates: _estimates, ...c }) => c)
+                )
+              }
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
+          <Button size="sm" className="press rounded-full shadow-sm" onClick={() => setAdding(true)}>
+            <Plus className="mr-1 h-4 w-4" /> {t.clients.add}
+          </Button>
+        </div>
       </header>
 
       {clients.length === 0 ? (
