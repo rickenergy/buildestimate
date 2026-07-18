@@ -24,9 +24,18 @@ import {
 } from "@/components/ui/select";
 import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
-import { upsertClient, updateClientStatus } from "@/app/actions/clients";
-import { Plus, Phone, ChevronRight, AlertCircle, Download } from "lucide-react";
+import { upsertClient, updateClientStatus, importClients } from "@/app/actions/clients";
+import { Plus, Phone, ChevronRight, AlertCircle, Download, PhoneCall, MessageCircle, Mail, MapPin, Pencil } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
+import { CsvImport, type ImportField } from "@/components/csv-import";
+
+const CLIENT_IMPORT_FIELDS: ImportField[] = [
+  { key: "name", label: "Name", required: true, aliases: ["name", "nome", "cliente", "client", "full name", "customer", "contact"] },
+  { key: "phone", label: "Phone", aliases: ["phone", "telefone", "tel", "celular", "mobile", "cell", "teléfono", "whatsapp"] },
+  { key: "email", label: "Email", aliases: ["email", "e-mail", "correo", "mail"] },
+  { key: "address", label: "Address", aliases: ["address", "endereço", "endereco", "direccion", "dirección", "location", "street"] },
+  { key: "notes", label: "Notes", aliases: ["notes", "notas", "obs", "observação", "observacao", "comment", "comentario"] },
+];
 import type { ClientRow, ClientStatus } from "@/lib/types";
 
 type ClientWithEstimates = ClientRow & {
@@ -41,6 +50,7 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [editing, setEditing] = useState<ClientRow | null>(null);
+  const [viewing, setViewing] = useState<ClientWithEstimates | null>(null);
   const [adding, setAdding] = useState(false);
 
   const daysStale = (c: ClientRow) =>
@@ -51,6 +61,10 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
       <header className="flex items-center justify-between animate-fade-up">
         <h1 className="text-xl font-bold">{t.clients.title}</h1>
         <div className="flex gap-2">
+          <CsvImport
+            fields={CLIENT_IMPORT_FIELDS}
+            onImport={(rows) => importClients(rows as { name: string }[])}
+          />
           {clients.length > 0 && (
             <Button
               size="icon"
@@ -85,7 +99,7 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
                   <div className="flex items-center justify-between gap-2">
                     <button
                       className="min-w-0 flex-1 text-left"
-                      onClick={() => setEditing(c)}
+                      onClick={() => setViewing(c)}
                     >
                       <p className="truncate font-medium">{c.name}</p>
                       {c.phone && (
@@ -161,7 +175,152 @@ export function ClientsList({ clients }: { clients: ClientWithEstimates[] }) {
           router.refresh();
         }}
       />
+
+      <ClientDetail
+        client={viewing}
+        onClose={() => setViewing(null)}
+        onEdit={(c) => {
+          setViewing(null);
+          setEditing(c);
+        }}
+      />
     </section>
+  );
+}
+
+function ClientDetail({
+  client,
+  onClose,
+  onEdit,
+}: {
+  client: ClientWithEstimates | null;
+  onClose: () => void;
+  onEdit: (c: ClientRow) => void;
+}) {
+  const t = useDict();
+  const lang = useLang();
+  if (!client) return null;
+
+  const digits = client.phone?.replace(/\D/g, "") ?? "";
+  const waDigits = digits.length === 10 ? `1${digits}` : digits;
+  const total = client.estimates.reduce((s, e) => s + Number(e.total), 0);
+
+  return (
+    <Dialog open={client !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{client.name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-3">
+          {/* quick actions */}
+          <div className="grid grid-cols-3 gap-2">
+            <ActionBtn
+              disabled={!digits}
+              href={digits ? `tel:${digits}` : undefined}
+              icon={<PhoneCall className="h-4 w-4" />}
+              label={t.clients.phone}
+            />
+            <ActionBtn
+              disabled={!waDigits}
+              href={waDigits ? `https://wa.me/${waDigits}` : undefined}
+              external
+              icon={<MessageCircle className="h-4 w-4" />}
+              label="WhatsApp"
+            />
+            <ActionBtn
+              disabled={!client.email}
+              href={client.email ? `mailto:${client.email}` : undefined}
+              icon={<Mail className="h-4 w-4" />}
+              label={t.clients.email}
+            />
+          </div>
+          {client.address && (
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(client.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press flex items-center gap-2 rounded-xl border p-3 text-sm hover:bg-muted"
+            >
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1 truncate">{client.address}</span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </a>
+          )}
+
+          {/* contact rows */}
+          <div className="rounded-xl bg-muted/50 p-3 text-sm">
+            {client.phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" /> {client.phone}</p>}
+            {client.email && <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" /> {client.email}</p>}
+            {client.notes && <p className="mt-1 text-xs text-muted-foreground">{client.notes}</p>}
+          </div>
+
+          {/* transaction history */}
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t.dashboard.recentEstimates}
+              </p>
+              {total > 0 && <span className="text-xs font-bold">{formatMoney(total, lang)}</span>}
+            </div>
+            {client.estimates.length === 0 ? (
+              <p className="py-3 text-center text-xs text-muted-foreground">—</p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {client.estimates.map((e) => (
+                  <Link
+                    key={e.id}
+                    href={`/estimate/${e.id}`}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm hover:bg-muted"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{e.title}</span>
+                    <span className="shrink-0 font-medium">{formatMoney(Number(e.total), lang)}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button variant="outline" onClick={() => onEdit(client)}>
+            <Pencil className="mr-1 h-4 w-4" /> {t.common.edit}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ActionBtn({
+  href,
+  icon,
+  label,
+  disabled,
+  external,
+}: {
+  href?: string;
+  icon: React.ReactNode;
+  label: string;
+  disabled?: boolean;
+  external?: boolean;
+}) {
+  if (disabled || !href) {
+    return (
+      <div className="flex flex-col items-center gap-1 rounded-xl border p-3 text-xs text-muted-foreground opacity-40">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+    );
+  }
+  return (
+    <a
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className="press flex flex-col items-center gap-1 rounded-xl border bg-primary/5 p-3 text-xs font-medium text-primary hover:bg-primary/10"
+    >
+      {icon}
+      <span className="truncate">{label}</span>
+    </a>
   );
 }
 
