@@ -42,6 +42,8 @@ export interface Profile {
   tax_pct: number;
   min_margin_pct: number;
   hourly_rate: number;
+  plan: string;
+  trial_ends_at: string;
 }
 
 export interface ClientRow {
