@@ -199,3 +199,145 @@ export function getStandard(trade: string): JobStandard | null {
 export function getAdjacent(trade: string): AdjacentNeed[] {
   return ADJACENCY[trade] ?? [];
 }
+
+/* ------------------------------------------------------------------ */
+/* Task mapping — the execution sequence of a job, by trade           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Ordered execution steps per trade (US field practice). Powers the
+ * "Service tasks" card on an estimate. Mapped trades resolve instantly and
+ * for free; an unmapped trade is filled by the AI (grounded on this list
+ * when a close match exists). English is the ground truth — the action
+ * translates/generates into the contractor's language on demand.
+ */
+export const TRADE_TASKS: Record<string, string[]> = {
+  flooring: [
+    "Protect and clear the room",
+    "Remove old flooring",
+    "Prep and level the subfloor",
+    "Lay underlayment / moisture barrier",
+    "Install the flooring",
+    "Install trim and transitions",
+    "Clean up and haul debris",
+  ],
+  painting: [
+    "Protect floors and mask edges",
+    "Repair and patch surfaces",
+    "Sand and prime",
+    "Caulk gaps and seams",
+    "Apply paint coats",
+    "Cut in trim and detail",
+    "Clean up and inspect",
+  ],
+  drywall: [
+    "Check framing and prep",
+    "Hang the board",
+    "Tape and mud (3 coats)",
+    "Sand smooth",
+    "Prime",
+    "Match texture if needed",
+    "Clean up dust",
+  ],
+  tile: [
+    "Demo and prep the substrate",
+    "Waterproof / install cement board",
+    "Dry-lay the layout",
+    "Set the tile",
+    "Grout",
+    "Seal grout and joints",
+    "Clean haze and inspect",
+  ],
+  roofing: [
+    "Tear off old roofing",
+    "Inspect and repair decking",
+    "Install underlayment",
+    "Flash valleys and penetrations",
+    "Install shingles",
+    "Cap ridge and vents",
+    "Clean up and magnet-sweep for nails",
+  ],
+  framing: [
+    "Lay out walls",
+    "Set bottom and top plates",
+    "Frame studs 16\" OC",
+    "Build headers and openings",
+    "Sheathe and block",
+    "Square and brace",
+    "Pass framing inspection",
+  ],
+  trim: [
+    "Measure and cut",
+    "Install baseboard",
+    "Install door and window casing",
+    "Install crown if in scope",
+    "Fill nail holes and caulk",
+    "Sand and touch up",
+    "Clean up",
+  ],
+  siding: [
+    "Remove old siding",
+    "Install house wrap",
+    "Flash windows and doors",
+    "Install siding",
+    "Trim corners and edges",
+    "Caulk and seal",
+    "Clean up",
+  ],
+  concrete: [
+    "Excavate and grade",
+    "Set forms",
+    "Compact gravel base",
+    "Place rebar / mesh",
+    "Pour concrete",
+    "Finish and cure",
+    "Strip forms and clean",
+  ],
+  remodeling: [
+    "Demo existing",
+    "Rough-in electrical and plumbing",
+    "Pass rough inspection",
+    "Insulate and drywall",
+    "Install finishes",
+    "Set fixtures",
+    "Punch list and clean",
+  ],
+  landscaping: [
+    "Clear and grade the site",
+    "Prep and amend soil",
+    "Install hardscape",
+    "Run irrigation",
+    "Plant",
+    "Mulch and edge",
+    "Clean up",
+  ],
+  cleaning: [
+    "Assess and plan",
+    "Protect surfaces",
+    "Remove dust and debris",
+    "Deep clean surfaces",
+    "Sanitize",
+    "Final walkthrough",
+  ],
+  finish_basement: [
+    "Install moisture barrier",
+    "Frame stud walls",
+    "Rough-in electrical and plumbing",
+    "Insulate",
+    "Hang and finish drywall",
+    "Install flooring",
+    "Trim and paint",
+  ],
+  handyman: [
+    "Assess the task",
+    "Gather materials",
+    "Prep the area",
+    "Perform the repair",
+    "Test and verify",
+    "Clean up",
+  ],
+};
+
+export function getTaskMapping(trade: string): string[] | null {
+  return TRADE_TASKS[trade] ?? null;
+}

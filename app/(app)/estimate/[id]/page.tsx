@@ -10,6 +10,8 @@ import { JobCostCard } from "@/components/job-cost-card";
 import { EstimateShare } from "@/components/estimate-share";
 import { TasksCard } from "@/components/tasks-card";
 import { RelatedWorkCard } from "@/components/related-work-card";
+import { ServiceTasksCard } from "@/components/service-tasks-card";
+import { getTaskMapping } from "@/lib/standards";
 import { BillingCard } from "@/components/billing-card";
 import { JobPhotosCard } from "@/components/job-photos-card";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
@@ -150,6 +152,10 @@ export default async function EstimatePage({
           estimateId={id}
           subs={(subs ?? []) as Subcontractor[]}
           shares={shares}
+        />
+        <ServiceTasksCard
+          trade={estimate.trade}
+          initialTasks={getTaskMapping(estimate.trade)}
         />
         <RelatedWorkCard trade={estimate.trade} />
         <MarketInsightsCard
