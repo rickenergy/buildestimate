@@ -37,6 +37,7 @@ export async function learnCatalogItems(
       unit: string;
       material_cost: number;
       labor_cost: number;
+      status: string;
     }[] = [];
 
     for (const li of items) {
@@ -52,6 +53,7 @@ export async function learnCatalogItems(
         unit: li.unit || "ea",
         material_cost: isLabor ? 0 : cost,
         labor_cost: isLabor ? cost : 0,
+        status: "pending",
       });
     }
 

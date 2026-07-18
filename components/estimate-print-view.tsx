@@ -16,6 +16,7 @@ export type PrintProfile = Pick<
   | "logo_url"
   | "banner_url"
   | "banner_position"
+  | "banner_zoom"
   | "company_address"
   | "company_email"
   | "license_number"
@@ -80,7 +81,10 @@ export function EstimatePrintView({ estimate, items, profile }: Props) {
             src={profile.banner_url}
             alt=""
             className="h-full w-full object-cover"
-            style={{ objectPosition: `center ${profile.banner_position ?? 50}%` }}
+            style={{
+              objectPosition: `center ${profile.banner_position ?? 50}%`,
+              transform: `scale(${(profile.banner_zoom ?? 100) / 100})`,
+            }}
           />
         </div>
       )}

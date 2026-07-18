@@ -38,6 +38,7 @@ interface ProposalData {
     logo_url: string | null;
     banner_url: string | null;
     banner_position: number | null;
+    banner_zoom: number | null;
     company_address: string | null;
     company_email: string | null;
     license_number: string | null;
@@ -99,7 +100,10 @@ export default async function PublicProposalPage({
               src={contractor.banner_url}
               alt=""
               className="h-full w-full object-cover"
-              style={{ objectPosition: `center ${contractor.banner_position ?? 50}%` }}
+              style={{
+                objectPosition: `center ${contractor.banner_position ?? 50}%`,
+                transform: `scale(${(contractor.banner_zoom ?? 100) / 100})`,
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
           </div>

@@ -604,6 +604,9 @@ export const es: Dict = {
     customPrice: "Tu precio",
     defaultPrice: "Predeterminado",
     hint: "Tus precios reemplazan los predeterminados en cada presupuesto.",
+    dupWarning: "Ya existe en {trade} → toca para ver",
+    pendingApproval: "Pendiente de aprobación",
+    approve: "Aprobar",
   },
 
   settings: {

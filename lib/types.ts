@@ -31,6 +31,7 @@ export interface Profile {
   logo_url: string | null;
   banner_url: string | null;
   banner_position: number | null;
+  banner_zoom: number | null;
   phone: string | null;
   company_address: string | null;
   company_email: string | null;

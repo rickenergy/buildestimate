@@ -40,6 +40,8 @@ export async function loadPrices(
       material_cost: Number(u.material_cost),
       labor_cost: Number(u.labor_cost),
       isUserPrice: true,
+      id: u.id,
+      status: u.status ?? "approved",
     });
   }
   return [...entries.values()];

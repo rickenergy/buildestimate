@@ -602,6 +602,9 @@ export const en = {
     customPrice: "Your price",
     defaultPrice: "Default",
     hint: "Your prices override defaults in every estimate.",
+    dupWarning: "Already exists in {trade} → tap to view it",
+    pendingApproval: "Pending approval",
+    approve: "Approve",
   },
 
   settings: {

@@ -46,6 +46,8 @@ export interface PriceEntry {
   material_cost: number;
   labor_cost: number;
   isUserPrice: boolean;
+  id?: string;
+  status?: string; // pending | approved
 }
 
 export interface ComputedItem {

@@ -57,8 +57,17 @@ export async function overrideDefaultPrice(fields: {
       })
       .eq("id", existing.id);
   } else {
-    await supabase.from("price_items").insert({ user_id: user.id, ...fields });
+    // Brand-new catalog entries start pending — approved by the contractor/
+    // admin before they're trusted (the account owner approves for now, until
+    // multi-role accounts exist).
+    await supabase.from("price_items").insert({ user_id: user.id, status: "pending", ...fields });
   }
+  revalidatePath("/prices");
+}
+
+export async function approvePriceItem(id: string) {
+  const supabase = await createClient();
+  await supabase.from("price_items").update({ status: "approved" }).eq("id", id);
   revalidatePath("/prices");
 }
 

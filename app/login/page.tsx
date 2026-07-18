@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,10 @@ export default function LoginPage() {
 
     if (mode === "signup" && password !== confirmPassword) {
       setError("Passwords don't match / As senhas não coincidem / Las contraseñas no coinciden");
+      return;
+    }
+    if (mode === "signup" && !acceptedTerms) {
+      setError("Please accept the Terms and Privacy Policy / Aceite os Termos / Acepta los Términos");
       return;
     }
 
@@ -68,6 +73,11 @@ export default function LoginPage() {
         return;
       }
       if (data.session) {
+        // record acceptance timestamp — best-effort, never blocks the flow
+        await supabase
+          .from("profiles")
+          .update({ terms_accepted_at: new Date().toISOString() })
+          .eq("id", data.user!.id);
         router.push("/home");
         router.refresh();
       } else {
@@ -171,6 +181,28 @@ export default function LoginPage() {
                   autoComplete="new-password"
                 />
               </div>
+            )}
+
+            {mode === "signup" && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                />
+                <span>
+                  I agree to the{" "}
+                  <a href="/terms" target="_blank" className="text-primary underline">
+                    Terms
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" target="_blank" className="text-primary underline">
+                    Privacy Policy
+                  </a>
+                  . / Aceito os Termos e a Política de Privacidade.
+                </span>
+              </label>
             )}
 
             {mode === "signin" && (
