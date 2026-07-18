@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
 import { I18nProvider } from "@/components/providers";
 import { BottomNav } from "@/components/bottom-nav";
+import { Sidebar } from "@/components/sidebar";
 import { GuideFab } from "@/components/guide-fab";
 import type { Language } from "@/lib/types";
 
@@ -29,7 +30,10 @@ export default async function AppLayout({
 
   return (
     <I18nProvider dict={dict} lang={lang}>
-      <div className="mx-auto w-full max-w-md flex-1 pb-24 md:max-w-2xl">{children}</div>
+      <div className="flex w-full flex-1">
+        <Sidebar />
+        <div className="mx-auto w-full max-w-md flex-1 pb-24 md:max-w-3xl md:pb-8">{children}</div>
+      </div>
       <GuideFab />
       <BottomNav />
     </I18nProvider>

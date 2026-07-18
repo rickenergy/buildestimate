@@ -21,7 +21,7 @@ const REG = {
   store: { en: "Retail store", pt: "Loja varejista", es: "Tienda" },
 } as const;
 
-export function NewMenu({ label }: { label: string }) {
+export function NewMenu({ label, trigger }: { label: string; trigger?: React.ReactNode }) {
   const t = useDict();
   const lang = useLang() as "en" | "pt" | "es";
   const trm = (m: Record<"en" | "pt" | "es", string>) => m[lang] ?? m.en;
@@ -66,16 +66,18 @@ export function NewMenu({ label }: { label: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          className="flex flex-col items-center gap-0.5 px-3 py-2"
-          aria-label={label}
-        >
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg -mt-5">
-            <Plus className="h-6 w-6" />
-          </span>
-          <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
-        </button>
+        {trigger ?? (
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-3 py-2"
+            aria-label={label}
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg -mt-5">
+              <Plus className="h-6 w-6" />
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

@@ -16,7 +16,7 @@ export function GuideFab() {
     <Link
       href="/guide"
       aria-label={GUIDE_UI[lang].open}
-      className="fixed bottom-24 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border bg-background text-primary shadow-lg transition hover:scale-105 hover:bg-primary hover:text-primary-foreground md:right-[max(1rem,calc(50%-20rem))]"
+      className="fixed bottom-24 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border bg-background text-primary shadow-lg transition hover:scale-105 hover:bg-primary hover:text-primary-foreground md:hidden"
     >
       <HelpCircle className="h-5 w-5" />
     </Link>
