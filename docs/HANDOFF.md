@@ -47,15 +47,18 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 - **Infra**: cron keep-alive (banco não pausa), cookies+privacy+terms, RLS+advisors OK
 
 ## 🔴 PENDENTES — Épicos grandes (precisam sessão dedicada, NÃO improvisar)
-1. **Sistema de cargos/permissões** — funcionário↔supervisor↔projeto (N:N), roles: Laborer, Inspector, Estimator, Safety Manager, Scheduler, PM, Construction Manager, Superintendent, Foreman, Civil Engineer, Contractor. Visibilidade por role. **Dashboards por role em /demand** (GC=pipeline+margem+cashflow / Estimator=variância+benchmarks / PM=budget vs actual+cronograma). Ver detalhes ricos de gráficos que o user descreveu no histórico do chat.
+1. **Sistema de cargos/permissões** — funcionário↔supervisor↔projeto (N:N), roles: Laborer, Inspector, Estimator, Safety Manager, Scheduler, PM, Construction Manager, Superintendent, Foreman, Civil Engineer, Contractor. Visibilidade por role. **Dashboards por role em /demand** (GC=pipeline+margem+cashflow / Estimator=variância+benchmarks / PM=budget vs actual+cronograma).
+   - ⚠️ **PARCIAL (2026-07-18):** seletor de role no /demand + **visão GC completa e funcional** (funil por status, receita/mês, saúde de margem — dados reais de estimates, reusa charts.tsx SVG). Outros 10 roles = placeholder honesto nomeando o épico de que dependem. **Falta:** tabela roles N:N + permissão real no servidor + dados dos demais roles (dependem de Scheduler/Gantt + Safety checklist). Spec completa dos 11 roles em `docs/dashboards-por-role-SPEC.md`.
 2. **Safety Manager smart checklist** — lista de inspeções/validações por trade+trabalho selecionado, flag ao concluir, pede foto.
 3. **Scheduler / Gantt** — cronograma de execução.
 4. **Push notifications** — VAPID + service worker + `push_subscriptions` + broadcast em settings (1 user / grupo subs / todos do projeto). Hoje só email mailto.
 5. **Advisor dinâmico por voz + offline** — cliente fala/escreve/foto → IA analisa → gera perguntas relevantes do escopo → responde por voz(transcrição) ou texto → identifica necessidades ocultas. Perguntas fechadas que expandem. Funciona offline com sync.
 6. **Premium gating + coroa** — DB pronta (`profiles.plan`, `trial_ends_at`). Falta Stripe + badge coroa (estilo Canva, tooltip "Premium" no hover) + bloqueio de features. Inventory marcado como "Premium (trial)".
-7. **Store→inventory "mais barato por item"** — precisa relação item×loja×preço. Hoje: campo supplier + notes.
-8. **Task mapping por serviço no estimate** — lista tarefas mapeadas por trade (lib/standards.ts adjacency); não-mapeado a IA alimenta.
-9. **VIP estimate overhaul** + **Market Intelligence com dado real** (hoje ancorado no custo, mas modelo LLM).
+
+## ✅ CONCLUÍDO 2026-07-18 (sessão OpenCode/Claude)
+7. ✅ **Store→inventory "mais barato por item"** — tabela `item_store_prices` (item×loja×preço, RLS, FK, trigger, migration aplicada). Card mostra badge "mais barato" (preço+loja); dialog tem seção Preços por loja (select loja ou texto livre, preço, link). Actions upsert/delete em network.ts.
+8. ✅ **Task mapping por serviço no estimate** — `TRADE_TASKS` (sequência de execução dos 14 trades) em standards.ts; action `getServiceTasks` (mapeado=determinístico instantâneo, não-mapeado/idioma≠EN=IA grounded); `ServiceTasksCard` no estimate detail (passos numerados, badge fonte, gerar/refinar com IA).
+9. ✅ **Market Intelligence com dado real** — injeta sinal externo real de **Census building permits** (YoY por região do estimate → tendência expanding/cooling/flat) no prompt do LLM + exibe no card com fonte. "VIP estimate" não existia no código (era rótulo do handoff). Continua ancorado no custo determinístico + guardrail de floor.
 
 ## Pendente user (config, não código)
 - STRIPE_SECRET_KEY → Vercel (payment links, código pronto)
