@@ -12,6 +12,7 @@ import { TasksCard } from "@/components/tasks-card";
 import { RelatedWorkCard } from "@/components/related-work-card";
 import { ServiceTasksCard } from "@/components/service-tasks-card";
 import { getTaskMapping } from "@/lib/standards";
+import { SafetyChecklistCard } from "@/components/safety-checklist-card";
 import { BillingCard } from "@/components/billing-card";
 import { JobPhotosCard } from "@/components/job-photos-card";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
@@ -62,6 +63,12 @@ export default async function EstimatePage({
     .select("*")
     .eq("estimate_id", id)
     .order("created_at");
+
+  const { data: safetyRows } = await supabase
+    .from("safety_checks")
+    .select("item_key")
+    .eq("estimate_id", id);
+  const safetyDone = (safetyRows ?? []).map((r) => r.item_key as string);
 
   const { data: jobPhotos } = await supabase
     .from("job_photos")
@@ -157,6 +164,7 @@ export default async function EstimatePage({
           trade={estimate.trade}
           initialTasks={getTaskMapping(estimate.trade)}
         />
+        <SafetyChecklistCard trade={estimate.trade} estimateId={id} initialDone={safetyDone} />
         <RelatedWorkCard trade={estimate.trade} />
         <MarketInsightsCard
           estimateId={id}
