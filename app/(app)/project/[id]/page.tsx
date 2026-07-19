@@ -7,7 +7,9 @@ import { EstimateStatusBadge } from "@/components/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { formatMoney } from "@/lib/format";
 import { Home, Building2, Layers, Plus, MapPin, FileText, Pencil } from "lucide-react";
-import type { Project, Estimate } from "@/lib/types";
+import { ProjectTeamCard } from "@/components/project-team-card";
+import type { Assignment } from "@/app/actions/assignments";
+import type { Project, Estimate, Employee } from "@/lib/types";
 
 const TYPE_ICON = { residential: Home, commercial: Building2, mixed: Layers } as const;
 
@@ -41,6 +43,31 @@ export default async function ProjectPage({
   ]);
 
   if (!project) notFound();
+
+  const [{ data: employees }, { data: assignRows }] = await Promise.all([
+    supabase.from("employees").select("*").eq("user_id", user!.id).order("name"),
+    supabase
+      .from("project_assignments")
+      .select(
+        "id, project_id, employee_id, role, supervisor_id, employee:employees!project_assignments_employee_id_fkey(name), supervisor:employees!project_assignments_supervisor_id_fkey(name)"
+      )
+      .eq("project_id", id)
+      .order("created_at"),
+  ]);
+  const embName = (v: unknown): string | null => {
+    const rec = Array.isArray(v) ? v[0] : v;
+    return (rec as { name?: string } | null)?.name ?? null;
+  };
+  const assignments = (assignRows ?? []).map((a) => ({
+    id: a.id as string,
+    project_id: a.project_id as string,
+    employee_id: a.employee_id as string,
+    role: (a.role as string | null) ?? null,
+    supervisor_id: (a.supervisor_id as string | null) ?? null,
+    employee_name: embName(a.employee),
+    supervisor_name: embName(a.supervisor),
+  })) as Assignment[];
+
   const p = project as Project & { clients: { name: string } | null };
   const list = (jobs ?? []) as Estimate[];
   const Icon = TYPE_ICON[p.project_type];
@@ -129,6 +156,12 @@ export default async function ProjectPage({
           )}
         </CardContent>
       </Card>
+
+      <ProjectTeamCard
+        projectId={id}
+        employees={(employees ?? []) as Employee[]}
+        assignments={assignments}
+      />
       </div>
     </div>
   );
