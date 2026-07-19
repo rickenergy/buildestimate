@@ -4,6 +4,7 @@ import { getMembership } from "@/lib/membership";
 import { buildMemberHome } from "@/lib/member-home";
 import { MemberHome } from "@/components/member-home";
 import { HomeDashboard, type HomeData } from "@/components/home-dashboard";
+import type { SetupState } from "@/components/setup-checklist";
 import {
   buildAlerts,
   cashSeries,
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
 
   const [{ data: profile }, { data: estimates }, { data: tx }, { data: invoices }, { data: tasks }] =
     await Promise.all([
-      supabase.from("profiles").select("full_name, language").eq("id", user!.id).single(),
+      supabase.from("profiles").select("full_name, language, company_name").eq("id", user!.id).single(),
       supabase
         .from("estimates")
         .select(
@@ -165,5 +166,25 @@ export default async function DashboardPage() {
     })),
   };
 
-  return <HomeDashboard data={data} />;
+  // First-steps checklist (cheap head counts; card hides itself when complete)
+  const countOf = (table: string) =>
+    supabase.from(table).select("id", { count: "exact", head: true }).eq("user_id", user!.id);
+  const [{ count: nClients }, { count: nProposals }, { count: nPrices }, { count: nInvites }, { count: nMembers }] =
+    await Promise.all([
+      countOf("clients"),
+      countOf("proposals"),
+      countOf("price_items"),
+      supabase.from("org_invites").select("id", { count: "exact", head: true }).eq("org_id", user!.id),
+      supabase.from("org_members").select("id", { count: "exact", head: true }).eq("org_id", user!.id),
+    ]);
+  const setup: SetupState = {
+    company: !!profile?.company_name,
+    prices: (nPrices ?? 0) > 0,
+    client: (nClients ?? 0) > 0,
+    estimate: all.length > 0,
+    proposal: (nProposals ?? 0) > 0,
+    team: (nInvites ?? 0) + (nMembers ?? 0) > 0,
+  };
+
+  return <HomeDashboard data={data} setup={setup} />;
 }

@@ -26,6 +26,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SetupChecklist, type SetupState } from "@/components/setup-checklist";
 
 export interface HomeData {
   firstName: string;
@@ -45,7 +46,7 @@ export interface HomeData {
   recent: { id: string; title: string; trade: string; status: string; total: number }[];
 }
 
-export function HomeDashboard({ data }: { data: HomeData }) {
+export function HomeDashboard({ data, setup }: { data: HomeData; setup?: SetupState }) {
   const t = useDict();
   const lang = useLang();
   const incidentsLabel =
@@ -84,6 +85,8 @@ export function HomeDashboard({ data }: { data: HomeData }) {
           </Link>
         )}
       </header>
+
+      {setup && <SetupChecklist state={setup} />}
 
       <Button
         asChild
