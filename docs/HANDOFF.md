@@ -46,24 +46,30 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 - **Demand**: market pulse (Census permits, seletor de região), demanda por área
 - **Infra**: cron keep-alive (banco não pausa), cookies+privacy+terms, RLS+advisors OK
 
-## 🔴 PENDENTES — Épicos grandes (precisam sessão dedicada, NÃO improvisar)
-1. **Sistema de cargos/permissões** — funcionário↔supervisor↔projeto (N:N), roles: Laborer, Inspector, Estimator, Safety Manager, Scheduler, PM, Construction Manager, Superintendent, Foreman, Civil Engineer, Contractor. Visibilidade por role. **Dashboards por role em /demand** (GC=pipeline+margem+cashflow / Estimator=variância+benchmarks / PM=budget vs actual+cronograma).
-   - ⚠️ **PARCIAL (2026-07-18):** seletor de role no /demand + **visão GC completa e funcional** (funil por status, receita/mês, saúde de margem — dados reais de estimates, reusa charts.tsx SVG). Outros 10 roles = placeholder honesto nomeando o épico de que dependem. **Falta:** tabela roles N:N + permissão real no servidor + dados dos demais roles (dependem de Scheduler/Gantt + Safety checklist). Spec completa dos 11 roles em `docs/dashboards-por-role-SPEC.md`.
-2. **Safety Manager smart checklist** — lista de inspeções/validações por trade+trabalho selecionado, flag ao concluir, pede foto.
-3. **Scheduler / Gantt** — cronograma de execução.
-4. **Push notifications** — VAPID + service worker + `push_subscriptions` + broadcast em settings (1 user / grupo subs / todos do projeto). Hoje só email mailto.
-5. **Advisor dinâmico por voz + offline** — cliente fala/escreve/foto → IA analisa → gera perguntas relevantes do escopo → responde por voz(transcrição) ou texto → identifica necessidades ocultas. Perguntas fechadas que expandem. Funciona offline com sync.
-6. **Premium gating + coroa** — DB pronta (`profiles.plan`, `trial_ends_at`). Falta Stripe + badge coroa (estilo Canva, tooltip "Premium" no hover) + bloqueio de features. Inventory marcado como "Premium (trial)".
+## 🔴 PENDENTES — o que ainda falta dos épicos grandes
+1. **Sistema de cargos/permissões (N:N) + visibilidade por role.**
+   - ✅ Feito: seletor de role + **dashboard GC** no /demand (`docs/dashboards-por-role-SPEC.md`); **roles estruturados** (`lib/roles.ts`, 11 cargos, datalist no employee).
+   - 🔴 Falta: tabela funcionário↔supervisor↔projeto (N:N), permissão real no servidor (RLS por role), dados dos outros 10 dashboards (dependem de mais fontes).
+5. **Advisor dinâmico por voz + offline.**
+   - ✅ Feito: **ditado por voz** (`VoiceInput`, Web Speech API) no campo de descrição do estimate.
+   - 🔴 Falta: IA gera perguntas dinâmicas do escopo → responde por voz/texto → acha necessidades ocultas; funcionar offline com sync.
 
-## ✅ CONCLUÍDO 2026-07-18 (sessão OpenCode/Claude)
-7. ✅ **Store→inventory "mais barato por item"** — tabela `item_store_prices` (item×loja×preço, RLS, FK, trigger, migration aplicada). Card mostra badge "mais barato" (preço+loja); dialog tem seção Preços por loja (select loja ou texto livre, preço, link). Actions upsert/delete em network.ts.
-8. ✅ **Task mapping por serviço no estimate** — `TRADE_TASKS` (sequência de execução dos 14 trades) em standards.ts; action `getServiceTasks` (mapeado=determinístico instantâneo, não-mapeado/idioma≠EN=IA grounded); `ServiceTasksCard` no estimate detail (passos numerados, badge fonte, gerar/refinar com IA).
-9. ✅ **Market Intelligence com dado real** — injeta sinal externo real de **Census building permits** (YoY por região do estimate → tendência expanding/cooling/flat) no prompt do LLM + exibe no card com fonte. "VIP estimate" não existia no código (era rótulo do handoff). Continua ancorado no custo determinístico + guardrail de floor.
+## ✅ CONCLUÍDO 2026-07-18 (sessão Claude Code)
+- **#7 Store→inventory "mais barato por item"** — `item_store_prices` (RLS/FK/trigger, migration aplicada); badge "mais barato" no card + seção Preços por loja no dialog.
+- **#8 Task mapping por serviço** — `TRADE_TASKS` (14 trades) + `getServiceTasks` (determinístico/IA grounded) + `ServiceTasksCard` no estimate.
+- **#9 Market Intelligence real** — sinal externo de **Census permits** (YoY→tendência) no prompt + card. ("VIP estimate" não existia no código.)
+- **#6 Premium** — `lib/premium` (planStatus), coroa `PremiumBadge` + `PlanCard` no settings, `/settings/billing` (Free vs Pro), **Stripe Checkout** (REST, sem SDK) + **webhook** (`/api/stripe/webhook`, verificação HMAC, flip plan via admin client), migration `stripe_customer_id`. → precisa config Stripe (abaixo).
+- **#2 Safety checklist** — `lib/safety` (geral OSHA + por trade, trilíngue) + `safety_checks` (migration) + `SafetyChecklistCard` no estimate (toggle done, progresso; `photo_url` pronto).
+- **#4 Push notifications** — `public/sw.js`, `lib/push` (web-push+VAPID), `push_subscriptions` (migration), actions (save/test/`notifyUser`), `PushToggle` no settings. → precisa config VAPID (abaixo).
+- **#3 Scheduler/Gantt** — `job_tasks.start_date` (migration) + `setTaskDates` + `GanttChart` no estimate (timeline, barras por status, marcador hoje, edição de datas inline).
+- **#1/#5 fundações** — ver acima (roles estruturados; ditado por voz).
 
 ## Pendente user (config, não código)
-- STRIPE_SECRET_KEY → Vercel (payment links, código pronto)
+- **Stripe (#6):** `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` → Vercel; registrar webhook `…/api/stripe/webhook` no Stripe (eventos `checkout.session.completed`, `customer.subscription.deleted`). Opcional `STRIPE_PRICE_ID`.
+- **Push (#4):** gerar VAPID (`npx web-push generate-vapid-keys`) → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto:) na Vercel.
+- **`SUPABASE_SERVICE_ROLE_KEY`** → Vercel (usado pelo webhook Stripe / notifyUser).
 - Leaked-password protection → Supabase Auth (1 toggle)
-- **SMTP próprio** (Resend/SendGrid) → Supabase Auth → Emails — SEM isso reset de senha e emails não chegam pra terceiros
+- **SMTP próprio** (Resend/SendGrid) → Supabase Auth → Emails
 - Google consent: App name/logo + URLs privacy/terms no Google Cloud
 - `NEXT_PUBLIC_SITE_URL=https://buildestimate-ai.vercel.app` → Vercel (recomendado)
 - Custom domain Supabase (add-on pago) pra sumir "supabase.co" na tela do Google
