@@ -1,76 +1,75 @@
 # Matriz de Responsabilidades & Acesso — ContractorOS AI
 
-> Proposta para o épico #1 (cargos/permissões). **Você valida/ajusta**, depois eu
-> implemento RLS por role no servidor. Nada aqui está aplicado ainda.
-> Data: 2026-07-18.
+> Proposta para o épico #1 (cargos/permissões). Atualizado com as decisões do dono.
+> Data: 2026-07-18. Nada aplicado ainda — implementação faseada abaixo.
 
-## 1. Modelo proposto (por que agrupar)
+## 1. Perfis de acesso (7)
 
-Os 11 cargos de construção são muitos para o dono gerenciar um a um. Proposta:
-**6 perfis de acesso**, cada cargo cai em um. Simples de atribuir, fácil de entender.
+**1 usuário = 1 perfil.** Cada cargo cai num perfil. Visibilidade de projeto por
+**responsabilidade** (tabela `project_assignments`): quem só é responsável por 1
+projeto, só vê 1. **Só GC e Project Manager veem TODOS os projetos.**
 
-| Perfil de acesso | Cargos que entram | Ideia central |
-|---|---|---|
-| **Owner / GC** | Contractor, Construction Manager | Dono. Vê e edita **tudo** (inclui custo/margem). |
-| **Sales (Vendedor)** | Salesperson *(novo)* | Vende. Cliente + estimate via wizard guiado + proposta. Vê **preço de venda**, NÃO vê custo/margem interna. |
-| **Estimator** | Estimator, Civil Engineer | Orçamento. Estimate, catálogo, market intelligence, variância. **Vê custo/margem.** |
-| **Ops (Obra)** | PM, Superintendent, Foreman, Scheduler | Executa. Cronograma, tarefas, equipe, budget vs actual, incidents. Vê custo do job, **não** o markup de venda. |
-| **Crew (Campo)** | Laborer, Inspector, Safety Manager | Só tarefas do dia + safety + fotos. **Zero financeiro.** |
-| **Subcontractor (externo)** | Subcontractor | **Sem login.** Só o estimate compartilhado por link (como já é hoje). |
+| Perfil | Cargos | Vê quais projetos | Financeiro |
+|---|---|---|---|
+| **Owner / GC** | Contractor, Construction Manager | **Todos** | Tudo (custo, margem, markup) |
+| **Project Manager** | PM | **Todos** | Custo + budget vs actual (sem editar billing) |
+| **Sales (Vendedor)** | Salesperson | Os seus | **Só preço de venda** (sem custo/margem) |
+| **Estimator** | Estimator, Civil Engineer | Os seus | Custo + margem |
+| **Field (Campo)** | Superintendent, Foreman, Scheduler | **Só os que é responsável** | Custo do job, **sem markup** |
+| **Crew** | Laborer, Inspector, Safety | **Só os que é responsável** | 🔒 nada |
+| **Subcontractor** | Subcontractor | **Só onde foi contratado** | **Só o que ELE recebe** (ver módulo próprio) |
 
-> Regra de ouro: **1 usuário = 1 perfil.** Owner sempre existe (é você). Os outros
-> você atribui aos funcionários que tiverem login.
+## 2. Matriz de acesso
 
-## 2. Matriz de acesso (o "quem vê o quê")
+`✅ vê+edita · 👁️ só vê · 🔒 nada`
 
-Legenda: ✅ vê+edita · 👁️ só vê · 🔒 nada
+| Recurso | GC | PM | Sales | Estimator | Field | Crew | Sub |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| Clientes / CRM | ✅ | 👁️ | ✅ | 👁️ | 🔒 | 🔒 | 🔒 |
+| Estimate criar/editar | ✅ | 👁️ | ✅ wizard | ✅ | 👁️ | 🔒 | 🔒 |
+| **Custo / margem / markup** | ✅ | custo👁️ | 🔒 | ✅ | custo👁️ markup🔒 | 🔒 | 🔒 |
+| Preço de venda | ✅ | 👁️ | ✅ | ✅ | 👁️ | 🔒 | 🔒 |
+| Propostas | ✅ | 👁️ | ✅ | 👁️ | 🔒 | 🔒 | 🔒 |
+| Market Intelligence | ✅ | 👁️ | 👁️ | ✅ | 🔒 | 🔒 | 🔒 |
+| Financeiro do job | ✅ | 👁️ | 🔒 | 👁️ | 👁️ | 🔒 | **só o dele** |
+| Tarefas / Gantt | ✅ | ✅ | 👁️ | 👁️ | ✅ | 👁️ suas | 👁️ suas |
+| Safety checklist | ✅ | ✅ | 🔒 | 🔒 | ✅ | ✅ | ✅ |
+| Inventory / lojas | ✅ | 👁️ | 🔒 | 👁️ | 👁️ | 🔒 | 🔒 |
+| Equipe do projeto | ✅ | ✅ | 🔒 | 🔒 | 👁️ | 👁️ | 🔒 |
+| Dashboard /demand | GC | budget/prazo | vendas | variância | seu projeto | 🔒 | progresso dele |
+| Cadastros | ✅ | 👁️ | 🔒 | 🔒 | 👁️ | 🔒 | 🔒 |
+| Settings / Billing | ✅ | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 |
 
-| Recurso | Owner/GC | Sales | Estimator | Ops | Crew |
-|---|:--:|:--:|:--:|:--:|:--:|
-| Clientes / CRM | ✅ | ✅ | 👁️ | 👁️ | 🔒 |
-| Estimate — criar/editar | ✅ | ✅ (wizard) | ✅ | 👁️ | 🔒 |
-| **Custo / margem / markup** | ✅ | 🔒 | ✅ | custo👁️ markup🔒 | 🔒 |
-| Preço de venda (total) | ✅ | ✅ | ✅ | 👁️ | 🔒 |
-| Propostas | ✅ | ✅ | 👁️ | 🔒 | 🔒 |
-| Market Intelligence | ✅ | 👁️ | ✅ | 🔒 | 🔒 |
-| Financeiro (job costing, invoices) | ✅ | 🔒 | 👁️ | 👁️ | 🔒 |
-| Tarefas / Cronograma (Gantt) | ✅ | 👁️ | 👁️ | ✅ | 👁️ (só as suas) |
-| Safety checklist | ✅ | 🔒 | 🔒 | ✅ | ✅ |
-| Inventory / lojas | ✅ | 🔒 | 👁️ | 👁️ | 🔒 |
-| Equipe do projeto (atribuições) | ✅ | 🔒 | 🔒 | ✅ | 👁️ |
-| Dashboard /demand (por role) | GC | vendas | variância | budget/prazo | 🔒 |
-| Cadastros (funcionários/subs/forn.) | ✅ | 🔒 | 🔒 | 👁️ | 🔒 |
-| Settings / Billing | ✅ | 🔒 | 🔒 | 🔒 | 🔒 |
+## 3. Perguntas do estimate em CASCATA por perfil
 
-## 3. Perguntas do estimate em CASCATA por role (seu insight)
+Cada `AdvisorQuestion` ganha `audience`. Aparecem **uma de cada vez** (wizard), só para
+o perfil dono. Proposta inicial (você ajusta):
 
-Hoje: bloco único de perguntas estáticas antes do estimate, iguais para todos.
-**Mudança:** cada pergunta ganha um **dono (audience)** e aparecem **uma de cada vez**
-(cascata/wizard), só para quem precisa:
+**Só o VENDEDOR vê** (venda + cliente — o pessoal de obra já sabe):
+1. Qual orçamento o cliente tem em mente?
+2. Qual a expectativa de prazo do cliente?
+3. Quem decide o fechamento (só ele, ou sócio/cônjuge)?
+4. Está pedindo orçamento a outras empresas? O que mais pesa — preço, prazo ou qualidade?
+5. Forma de pagamento preferida / precisa de financiamento?
+6. Como conheceu a empresa (indicação, Google, anúncio)?
 
-- **Sales (Vendedor)** — perguntas de **venda e cliente** que o pessoal de obra já
-  sabe de cor e não precisa ver: expectativa do cliente, prazo desejado, orçamento
-  do cliente, quem decide, concorrência, forma de pagamento, acesso ao imóvel.
-- **Estimator / GC** — perguntas **técnicas**: medições, código aplicável,
-  condições ocultas, responsabilidade por material, licenças.
-- **Ops** — perguntas de **execução**: janela de trabalho, logística, equipe.
+**Só o TÉCNICO vê** (Estimator/GC):
+1. Medidas confirmadas no local ou estimadas por foto?
+2. Condições ocultas prováveis (idade do imóvel, sinais de água/dano)?
+3. Material por conta de quem — contratante ou cliente?
+4. Precisa licença/permit para este escopo?
+5. Acesso ao local (escada, estacionamento, restrição de horário)?
+6. Código aplicável / inspeção necessária?
 
-Cada `AdvisorQuestion` recebe `audience: perfil[]`. O wizard mostra só as do perfil
-logado, uma por vez (com "por que importa"), e o **advisor de IA** (já feito) gera as
-dinâmicas dentro do mesmo perfil. Isso deixa o vendedor com um roteiro guiado sem
-poluir a tela de quem é técnico.
+## 4. Implementação faseada (baixo→alto risco)
 
-## 4. O que VOCÊ precisa decidir (checklist)
+1. **Fase A — perfil no usuário** (baixo risco): coluna `profiles.access_profile`
+   (enum 7 perfis) + UI pra o dono atribuir. Sem gating ainda.
+2. **Fase B — gating na tela** (médio): esconder cards/campos por perfil (client+server
+   render). Reversível, não trava banco.
+3. **Fase C — RLS por perfil** (alto): regras no banco por perfil + `project_assignments`.
+   **Testar em branch/staging do Supabase antes de prod.** Colunas sensíveis
+   (custo/margem) protegidas por view ou coluna-level.
+4. **Fase D — wizard cascata** por `audience`.
 
-1. **Perfis (seção 1):** o agrupamento em 6 está bom? Junta/separa algum?
-2. **Custo/margem:** confirmo que **Sales não vê**? E **Ops vê custo mas não o markup**?
-3. **1 perfil por usuário** serve, ou alguém precisa de 2 (ex: dono que também vende)?
-4. **Subcontractor:** fica só por link (sem login), certo? Ou quer dar login a eles?
-5. **Ops vê só os projetos que supervisiona**, ou todos? (usa `project_assignments`)
-6. **Crew vê só as próprias tarefas** — confirma?
-7. **Perguntas em cascata:** me diga 3–5 perguntas que **só o vendedor** vê e 3–5 que
-   **só o técnico** vê — eu monto o mapeamento.
-
-> Responda esses 7 e eu implemento: coluna de perfil no funcionário, RLS por perfil
-> (testada em staging antes de prod), colunas sensíveis protegidas, e o wizard em
-> cascata por role.
+> Faço A→B→C→D nessa ordem, cada uma verificada, sem pular pro RLS direto.
