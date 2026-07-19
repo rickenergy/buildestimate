@@ -21,6 +21,7 @@ import { useDict, useLang } from "@/components/providers";
 import { formatMoney } from "@/lib/format";
 import { aiDraftEstimate, acceptAiDraft, type AiDraft } from "@/app/actions/ai-estimate";
 import { improveDescription } from "@/app/actions/improve-description";
+import { VoiceInput } from "@/components/voice-input";
 import { ProfitProtectionCard } from "@/components/profit-protection-card";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { AreaMeasures } from "@/components/area-measures";
@@ -309,21 +310,26 @@ export function AiEstimateForm({ minMarginPct }: { minMarginPct: number }) {
           <div className="grid gap-1.5">
             <div className="flex items-center justify-between">
               <Label>{t.ai.description}</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs text-primary"
-                disabled={improving || !description.trim()}
-                onClick={improve}
-              >
-                {improving ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-1 h-3.5 w-3.5" />
-                )}
-                {t.ai.improve}
-              </Button>
+              <div className="flex items-center gap-1">
+                <VoiceInput
+                  onTranscript={(text) => setDescription((d) => (d.trim() ? `${d.trim()} ${text}` : text))}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs text-primary"
+                  disabled={improving || !description.trim()}
+                  onClick={improve}
+                >
+                  {improving ? (
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3.5 w-3.5" />
+                  )}
+                  {t.ai.improve}
+                </Button>
+              </div>
             </div>
             <Textarea
               rows={3}
