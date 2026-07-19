@@ -14,6 +14,7 @@ import { RelatedWorkCard } from "@/components/related-work-card";
 import { ServiceTasksCard } from "@/components/service-tasks-card";
 import { getTaskMapping } from "@/lib/standards";
 import { SafetyChecklistCard } from "@/components/safety-checklist-card";
+import { AiScopeQuestions } from "@/components/ai-scope-questions";
 import { BillingCard } from "@/components/billing-card";
 import { JobPhotosCard } from "@/components/job-photos-card";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
@@ -167,6 +168,7 @@ export default async function EstimatePage({
           initialTasks={getTaskMapping(estimate.trade)}
         />
         <SafetyChecklistCard trade={estimate.trade} estimateId={id} initialDone={safetyDone} />
+        <AiScopeQuestions estimateId={id} trade={estimate.trade} context={estimate.title ?? ""} />
         <RelatedWorkCard trade={estimate.trade} />
         <MarketInsightsCard
           estimateId={id}
