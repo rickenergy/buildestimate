@@ -34,7 +34,7 @@ const REG = {
   network: { en: "Network", pt: "Rede", es: "Red" },
 } as const;
 
-export function Sidebar() {
+export function Sidebar({ memberMode = false }: { memberMode?: boolean }) {
   const t = useDict();
   const lang = useLang() as Lang;
   const trm = (m: Record<Lang, string>) => m[lang] ?? m.en;
@@ -42,6 +42,24 @@ export function Sidebar() {
   const [manageOpen, setManageOpen] = useState(true);
 
   const active = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
+  // Team members get a focused sidebar: their work + settings, no owner tools.
+  if (memberMode) {
+    return (
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r bg-card/60 backdrop-blur md:flex">
+        <Link href="/home" className="flex items-center gap-2 px-5 py-5">
+          <Image src="/icon.svg" alt="" width={32} height={32} className="rounded-lg" />
+          <span className="text-sm font-bold leading-tight">ContractorOS AI</span>
+        </Link>
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+          <SideLink href="/home" label={t.nav.home} Icon={Home} active={active("/home")} />
+        </nav>
+        <div className="space-y-0.5 border-t px-3 py-3">
+          <SideLink href="/settings" label={t.nav.settings} Icon={Settings} active={active("/settings")} />
+        </div>
+      </aside>
+    );
+  }
 
   const main = [
     { href: "/home", label: t.nav.home, icon: Home },

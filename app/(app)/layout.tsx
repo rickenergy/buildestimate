@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
+import { getMembership } from "@/lib/membership";
 import { I18nProvider } from "@/components/providers";
 import { BottomNav } from "@/components/bottom-nav";
 import { Sidebar } from "@/components/sidebar";
@@ -27,15 +28,17 @@ export default async function AppLayout({
 
   const lang = (profile?.language ?? "en") as Language;
   const dict = getDict(lang);
+  const membership = await getMembership();
+  const memberMode = !!membership && !membership.isOwner;
 
   return (
     <I18nProvider dict={dict} lang={lang}>
       <div className="flex w-full flex-1">
-        <Sidebar />
+        <Sidebar memberMode={memberMode} />
         <div className="mx-auto w-full max-w-md flex-1 pb-24 md:max-w-3xl md:pb-8">{children}</div>
       </div>
-      <GuideFab />
-      <BottomNav />
+      {!memberMode && <GuideFab />}
+      <BottomNav memberMode={memberMode} />
     </I18nProvider>
   );
 }

@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDict } from "@/lib/i18n";
+import { getMembership } from "@/lib/membership";
+import { buildMemberHome } from "@/lib/member-home";
+import { MemberHome } from "@/components/member-home";
 import { HomeDashboard, type HomeData } from "@/components/home-dashboard";
 import {
   buildAlerts,
@@ -19,6 +22,14 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Team members get their own focused home — the owner dashboard below is
+  // financial and would be empty/noisy for them.
+  const membership = await getMembership();
+  if (membership && !membership.isOwner) {
+    const data = await buildMemberHome(supabase, user!.id, membership.orgId, membership.profile);
+    return <MemberHome data={data} />;
+  }
 
   const [{ data: profile }, { data: estimates }, { data: tx }, { data: invoices }, { data: tasks }] =
     await Promise.all([

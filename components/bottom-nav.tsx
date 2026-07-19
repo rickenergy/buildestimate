@@ -7,18 +7,24 @@ import { cn } from "@/lib/utils";
 import { useDict } from "@/components/providers";
 import { NewMenu } from "@/components/new-menu";
 
-export function BottomNav() {
+export function BottomNav({ memberMode = false }: { memberMode?: boolean }) {
   const pathname = usePathname();
   const t = useDict();
 
-  const items = [
-    { href: "/home", label: t.nav.home, icon: Home },
-    { href: "/estimates", label: t.nav.estimates, icon: FileText },
-    { href: "__new__", label: t.nav.new, icon: Plus, primary: true },
-    { href: "/finance", label: t.nav.finance, icon: Wallet },
-    { href: "/clients", label: t.nav.clients, icon: Users },
-    { href: "/settings", label: t.nav.settings, icon: Settings },
-  ];
+  const items = memberMode
+    ? // team members: focused nav — their work + settings only
+      [
+        { href: "/home", label: t.nav.home, icon: Home },
+        { href: "/settings", label: t.nav.settings, icon: Settings },
+      ]
+    : [
+        { href: "/home", label: t.nav.home, icon: Home },
+        { href: "/estimates", label: t.nav.estimates, icon: FileText },
+        { href: "__new__", label: t.nav.new, icon: Plus, primary: true },
+        { href: "/finance", label: t.nav.finance, icon: Wallet },
+        { href: "/clients", label: t.nav.clients, icon: Users },
+        { href: "/settings", label: t.nav.settings, icon: Settings },
+      ];
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)] md:hidden">

@@ -7,6 +7,14 @@ import { regionForState } from "@/lib/census-region";
 import { PermitPulseCard } from "@/components/permit-pulse-card";
 import { StageBars, MonthlyBars } from "@/components/charts";
 import { DemandRoles } from "@/components/demand-roles";
+import {
+  EstimatorView,
+  PmView,
+  SuperintendentView,
+  SafetyView,
+  ForemanView,
+  SchedulerView,
+} from "@/components/demand-role-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
 import { MapPin, TrendingUp } from "lucide-react";
@@ -46,11 +54,17 @@ const STAGES = ["draft", "ready", "sent", "approved", "lost"] as const;
 const MARGINS = ["healthy", "medium", "low"] as const;
 
 type EstRow = {
+  id: string;
+  title: string;
+  project_id: string | null;
   state: string | null;
   status: string;
   total: number | null;
   created_at: string;
   margin_score: string | null;
+  material_cost: number | null;
+  labor_cost: number | null;
+  demo_cost: number | null;
 };
 
 export default async function DemandPage() {
@@ -68,11 +82,34 @@ export default async function DemandPage() {
   const d = t.demand;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
 
-  // Pull the fields for both the market pulse (state) and the GC dashboard.
-  const { data: estData } = await supabase
-    .from("estimates")
-    .select("state,status,total,created_at,margin_score")
-    .eq("user_id", user!.id);
+  // Pull everything the role dashboards need, in parallel.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [
+    { data: estData },
+    { data: taskData },
+    { data: incidentData },
+    { data: coData },
+    { data: txData },
+    { data: invData },
+    { count: pendingCatalog },
+    { data: projData },
+  ] = await Promise.all([
+    supabase
+      .from("estimates")
+      .select("id,title,project_id,state,status,total,created_at,margin_score,material_cost,labor_cost,demo_cost")
+      .eq("user_id", user!.id),
+    supabase.from("job_tasks").select("id,estimate_id,title,status,due_date").eq("user_id", user!.id),
+    supabase.from("incidents").select("id,estimate_id,severity,status,created_at").eq("user_id", user!.id),
+    supabase.from("change_orders").select("amount").eq("user_id", user!.id),
+    supabase.from("job_transactions").select("estimate_id,amount").eq("user_id", user!.id),
+    supabase.from("inventory_items").select("id,name,quantity,min_quantity,unit").eq("user_id", user!.id),
+    supabase
+      .from("price_items")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user!.id)
+      .eq("status", "pending"),
+    supabase.from("projects").select("id,name,status").eq("user_id", user!.id),
+  ]);
   const est = (estData ?? []) as EstRow[];
 
   // dominant state → Census region for the market pulse
@@ -240,6 +277,119 @@ export default async function DemandPage() {
     </>
   );
 
+  // ── Role datasets (all owner-readable data) ──
+  const tasks = taskData ?? [];
+  const incidents = incidentData ?? [];
+  const jobTitle = new Map(est.map((e) => [e.id, e.title]));
+  const estCost = (e: EstRow) =>
+    Number(e.material_cost ?? 0) + Number(e.labor_cost ?? 0) + Number(e.demo_cost ?? 0);
+
+  const actualByJob = new Map<string, number>();
+  for (const t of txData ?? []) {
+    actualByJob.set(
+      t.estimate_id as string,
+      (actualByJob.get(t.estimate_id as string) ?? 0) + Number(t.amount ?? 0)
+    );
+  }
+
+  // Estimator: estimated cost vs actual spend per job
+  const variance = est
+    .filter((e) => (actualByJob.get(e.id) ?? 0) > 0 && estCost(e) > 0)
+    .map((e) => ({ title: e.title, est: Math.round(estCost(e)), actual: Math.round(actualByJob.get(e.id) ?? 0) }))
+    .sort((a, b) => b.actual - a.actual)
+    .slice(0, 6);
+  const avgDeltaPct =
+    variance.length > 0
+      ? Math.round(variance.reduce((s, v) => s + ((v.actual - v.est) / v.est) * 100, 0) / variance.length)
+      : null;
+
+  // PM: budget vs actual on active jobs + overdue + change orders
+  const activeBudget = est
+    .filter((e) => e.status === "approved" && estCost(e) > 0)
+    .map((e) => ({ title: e.title, est: Math.round(estCost(e)), actual: Math.round(actualByJob.get(e.id) ?? 0) }))
+    .slice(0, 6);
+  const overdueTasks = tasks.filter(
+    (t) => t.status !== "done" && t.due_date && (t.due_date as string) < todayIso
+  );
+  const changeOrdersTotal = (coData ?? []).reduce((s, c) => s + Number(c.amount ?? 0), 0);
+
+  // Superintendent: health per project
+  const sites = (projData ?? []).map((p) => {
+    const jobs = est.filter((e) => e.project_id === p.id);
+    const ids = new Set(jobs.map((j) => j.id));
+    return {
+      id: p.id as string,
+      name: p.name as string,
+      jobs: jobs.length,
+      overdue: overdueTasks.filter((t) => ids.has(t.estimate_id as string)).length,
+      incidentsOpen: incidents.filter((i) => ids.has(i.estimate_id as string) && i.status === "open").length,
+    };
+  });
+
+  // Safety: open by severity + streak
+  const openInc = incidents.filter((i) => i.status === "open");
+  const bySev = {
+    green: openInc.filter((i) => i.severity === "green").length,
+    yellow: openInc.filter((i) => i.severity === "yellow").length,
+    red: openInc.filter((i) => i.severity === "red").length,
+  };
+  const lastIncident = incidents
+    .map((i) => i.created_at as string)
+    .sort()
+    .at(-1);
+  const nowMs = new Date().getTime();
+  const daysSince = lastIncident
+    ? Math.floor((nowMs - Date.parse(lastIncident)) / 86_400_000)
+    : null;
+
+  // Foreman: due today/overdue + low stock
+  const foremanTasks = tasks
+    .filter((t) => t.status !== "done" && t.due_date && (t.due_date as string) <= todayIso)
+    .slice(0, 8)
+    .map((t) => ({
+      id: t.id as string,
+      title: t.title as string,
+      jobTitle: jobTitle.get(t.estimate_id as string) ?? null,
+      overdue: (t.due_date as string) < todayIso,
+    }));
+  const lowStock = (invData ?? [])
+    .filter((i) => i.min_quantity != null && Number(i.quantity) <= Number(i.min_quantity))
+    .slice(0, 6)
+    .map((i) => ({
+      id: i.id as string,
+      name: i.name as string,
+      quantity: Number(i.quantity),
+      min: Number(i.min_quantity),
+      unit: (i.unit as string | null) ?? null,
+    }));
+
+  // Scheduler: next 14 days grouped by date + unscheduled count
+  const in14 = new Date(nowMs + 14 * 86_400_000).toISOString().slice(0, 10);
+  const dayMap = new Map<string, { id: string; title: string; jobTitle: string | null }[]>();
+  for (const t of tasks) {
+    if (t.status === "done" || !t.due_date) continue;
+    const due = t.due_date as string;
+    if (due < todayIso || due > in14) continue;
+    const list = dayMap.get(due) ?? [];
+    list.push({ id: t.id as string, title: t.title as string, jobTitle: jobTitle.get(t.estimate_id as string) ?? null });
+    dayMap.set(due, list);
+  }
+  const scheduleDays = [...dayMap.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([date, dayTasks]) => ({ date, tasks: dayTasks }));
+  const unscheduled = tasks.filter((t) => t.status !== "done" && !t.due_date).length;
+
+  const roleViews = {
+    estimator: (
+      <EstimatorView variance={variance} pendingCatalog={pendingCatalog ?? 0} avgDeltaPct={avgDeltaPct} />
+    ),
+    pm: <PmView budget={activeBudget} overdueTasks={overdueTasks.length} changeOrdersTotal={changeOrdersTotal} />,
+    superintendent: <SuperintendentView sites={sites} />,
+    safety: <SafetyView open={bySev} daysSince={daysSince} resolved={incidents.length - openInc.length} />,
+    foreman: <ForemanView tasks={foremanTasks} lowStock={lowStock} />,
+    scheduler: <SchedulerView days={scheduleDays} unscheduled={unscheduled} />,
+  };
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
       <header className="space-y-1 animate-fade-up">
@@ -247,7 +397,7 @@ export default async function DemandPage() {
         <p className="text-sm text-muted-foreground">{d.subtitle}</p>
       </header>
 
-      <DemandRoles gc={gcView} />
+      <DemandRoles gc={gcView} views={roleViews} />
     </div>
   );
 }

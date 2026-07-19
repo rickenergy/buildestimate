@@ -69,11 +69,16 @@ const L = {
 } as const;
 
 /**
- * Role switcher for /demand. The GC view (`gc` prop) is fully built and
- * rendered on the server; every other role shows an honest "needs épico X"
- * placeholder until its data foundation exists.
+ * Role switcher for /demand. Each role renders its server-computed view;
+ * roles without a view yet fall back to an honest "needs épico X" placeholder.
  */
-export function DemandRoles({ gc }: { gc: React.ReactNode }) {
+export function DemandRoles({
+  gc,
+  views,
+}: {
+  gc: React.ReactNode;
+  views?: Partial<Record<Role, React.ReactNode>>;
+}) {
   const lang = useLang() as Lang;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
   const [role, setRole] = useState<Role>("gc");
@@ -99,7 +104,7 @@ export function DemandRoles({ gc }: { gc: React.ReactNode }) {
         </div>
       </div>
 
-      {role === "gc" ? gc : <ComingSoon role={role} tr={tr} />}
+      {role === "gc" ? gc : (views?.[role] ?? <ComingSoon role={role} tr={tr} />)}
     </div>
   );
 }
