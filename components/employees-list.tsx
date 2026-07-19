@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
+import { roleSuggestions } from "@/lib/roles";
 import { upsertEmployee, deleteEmployee, importEmployees } from "@/app/actions/network";
 import { User, Phone, Mail, Plus, Trash2, ArrowLeft, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
@@ -137,6 +138,7 @@ function Dlg({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const lang = useLang() as Lang;
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState({ name: "", role: "", phone: "", email: "", pay_rate: "", pay_unit: "hr", notes: "" });
   const [key, setKey] = useState("");
@@ -162,7 +164,14 @@ function Dlg({
         <DialogHeader><DialogTitle>{initial ? tr(L.edit) : tr(L.add)}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
           <Field label={tr(L.name)}><Input value={form.name} onChange={set("name")} required /></Field>
-          <Field label={tr(L.role)}><Input value={form.role} onChange={set("role")} /></Field>
+          <Field label={tr(L.role)}>
+            <Input value={form.role} onChange={set("role")} list="employee-role-suggestions" />
+            <datalist id="employee-role-suggestions">
+              {roleSuggestions(lang).map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
+          </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={tr(L.pay)}><Input type="number" inputMode="decimal" value={form.pay_rate} onChange={set("pay_rate")} /></Field>
             <Field label={tr(L.unit)}>
