@@ -48,8 +48,10 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 
 ## 🔴 PENDENTES — o que ainda falta dos épicos grandes
 1. **Sistema de cargos/permissões (N:N) + visibilidade por role.**
-   - ✅ Feito: seletor de role + **dashboard GC** no /demand (`docs/dashboards-por-role-SPEC.md`); **roles estruturados** (`lib/roles.ts`, 11 cargos, datalist); **atribuição N:N** funcionário↔projeto↔supervisor (`project_assignments`, `ProjectTeamCard` no project detail).
-   - 🔴 Falta (ALTO RISCO — decisão de produto + mexe em RLS de prod, precisa validar "quem vê o quê" antes): permissão/visibilidade real por role server-enforced; dados dos outros 10 dashboards.
+   - ✅ Feito: seletor de role + **dashboard GC** no /demand (`docs/dashboards-por-role-SPEC.md`); **roles estruturados** (`lib/roles.ts`); **atribuição N:N** (`project_assignments`, `ProjectTeamCard`).
+   - ✅ **Multi-tenancy (Equipe & Convites):** org = user_id do dono; `org_members` + `org_invites` + RPCs `current_org`/`accept_org_invite`/`is_org_member`; `/settings/team` (dono gera link de convite, gerencia membros/perfis) + `/invite/[token]` (aceitar). 7 perfis em `lib/access-profiles.ts`. Modelo validado em `docs/roles-matrix.md`.
+   - ✅ **RLS de membro (aditiva, aplicada em prod):** membro lê tabelas OPERACIONAIS (projects, project_assignments, job_tasks, safety_checks, job_photos, incidents) via `is_org_member(user_id)`. Policies do dono intactas. Financeiro/estimates/cadastros = **só dono** (sensível).
+   - 🔴 Falta: **Fase B gating de tela** por perfil (esconder custo/margem); **RLS por perfil** pra dados sensíveis (estimates/financeiro) com views/coluna-level; **telas próprias por perfil** (Field/Crew/Sub não têm UI dedicada — app é todo do dono hoje); dashboards dos outros 10 roles. **Testar fluxo de membro com conta secundária antes de convidar gente real.**
 5. **Advisor dinâmico por voz + offline.**
    - ✅ Feito: **ditado por voz** (`VoiceInput`); **advisor IA dinâmico** (`generateScopeQuestions` → perguntas específicas do job, resposta por voz/texto, salva em `advisor_answers`; `AiScopeQuestions` no estimate).
    - 🔴 Falta: captura/uso **offline com sync**.
