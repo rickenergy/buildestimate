@@ -48,11 +48,11 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 
 ## 🔴 PENDENTES — o que ainda falta dos épicos grandes
 1. **Sistema de cargos/permissões (N:N) + visibilidade por role.**
-   - ✅ Feito: seletor de role + **dashboard GC** no /demand (`docs/dashboards-por-role-SPEC.md`); **roles estruturados** (`lib/roles.ts`, 11 cargos, datalist no employee).
-   - 🔴 Falta: tabela funcionário↔supervisor↔projeto (N:N), permissão real no servidor (RLS por role), dados dos outros 10 dashboards (dependem de mais fontes).
+   - ✅ Feito: seletor de role + **dashboard GC** no /demand (`docs/dashboards-por-role-SPEC.md`); **roles estruturados** (`lib/roles.ts`, 11 cargos, datalist); **atribuição N:N** funcionário↔projeto↔supervisor (`project_assignments`, `ProjectTeamCard` no project detail).
+   - 🔴 Falta (ALTO RISCO — decisão de produto + mexe em RLS de prod, precisa validar "quem vê o quê" antes): permissão/visibilidade real por role server-enforced; dados dos outros 10 dashboards.
 5. **Advisor dinâmico por voz + offline.**
-   - ✅ Feito: **ditado por voz** (`VoiceInput`, Web Speech API) no campo de descrição do estimate.
-   - 🔴 Falta: IA gera perguntas dinâmicas do escopo → responde por voz/texto → acha necessidades ocultas; funcionar offline com sync.
+   - ✅ Feito: **ditado por voz** (`VoiceInput`); **advisor IA dinâmico** (`generateScopeQuestions` → perguntas específicas do job, resposta por voz/texto, salva em `advisor_answers`; `AiScopeQuestions` no estimate).
+   - 🔴 Falta: captura/uso **offline com sync**.
 
 ## ✅ CONCLUÍDO 2026-07-18 (sessão Claude Code)
 - **#7 Store→inventory "mais barato por item"** — `item_store_prices` (RLS/FK/trigger, migration aplicada); badge "mais barato" no card + seção Preços por loja no dialog.
