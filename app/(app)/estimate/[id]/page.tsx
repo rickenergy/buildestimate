@@ -9,6 +9,7 @@ import { MarketInsightsCard } from "@/components/market-insights";
 import { JobCostCard } from "@/components/job-cost-card";
 import { EstimateShare } from "@/components/estimate-share";
 import { TasksCard } from "@/components/tasks-card";
+import { GanttChart } from "@/components/gantt-chart";
 import { RelatedWorkCard } from "@/components/related-work-card";
 import { ServiceTasksCard } from "@/components/service-tasks-card";
 import { getTaskMapping } from "@/lib/standards";
@@ -134,6 +135,7 @@ export default async function EstimatePage({
           startDate={estimate.start_date ?? null}
           endDate={estimate.end_date ?? null}
         />
+        <GanttChart estimateId={id} tasks={(jobTasks ?? []) as JobTask[]} />
         <BillingCard
           estimateId={id}
           contractTotal={Number(estimate.total)}

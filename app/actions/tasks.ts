@@ -11,6 +11,7 @@ export interface JobTask {
   estimate_id: string;
   title: string;
   status: TaskStatus;
+  start_date: string | null;
   due_date: string | null;
   sort_order: number;
   created_at: string;
@@ -52,6 +53,25 @@ export async function setTaskStatus(taskId: string, estimateId: string, status: 
 export async function deleteTask(taskId: string, estimateId: string) {
   const supabase = await createClient();
   await supabase.from("job_tasks").delete().eq("id", taskId);
+  refresh(estimateId);
+}
+
+/** Set a task's schedule (start/due) for the Gantt view. */
+export async function setTaskDates(
+  taskId: string,
+  estimateId: string,
+  fields: { start_date?: string | null; due_date?: string | null }
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  await supabase
+    .from("job_tasks")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", taskId)
+    .eq("user_id", user.id);
   refresh(estimateId);
 }
 
