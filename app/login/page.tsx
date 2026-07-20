@@ -117,7 +117,15 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      // Email delivery failures come back opaque (e.g. 500) — show a friendly,
+      // actionable message instead of a raw error object.
+      const raw = typeof error.message === "string" ? error.message : "";
+      const emailIssue = !raw || raw === "{}" || /sending|smtp|email|500/i.test(raw);
+      setError(
+        emailIssue
+          ? "Couldn't send the email. Check your email settings and try again. / Não deu para enviar o email. Verifique a configuração de email e tente de novo. / No se pudo enviar el correo. Revisa la configuración e inténtalo de nuevo."
+          : raw
+      );
       return;
     }
     setMessage(
