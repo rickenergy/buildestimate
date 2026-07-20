@@ -4,6 +4,7 @@ import { fetchSubHistory, scoreSubs, type SubShareHistory, type SubIncidentRow }
 import { SubProfile } from "@/components/sub-profile";
 import { publicBaseUrl } from "@/lib/site-url";
 import type { SubContractRow } from "@/app/actions/sub-contracts";
+import type { SubPaymentRow } from "@/app/actions/sub-payments";
 import type { Subcontractor } from "@/lib/types";
 
 export default async function SubcontractorPage({
@@ -25,7 +26,7 @@ export default async function SubcontractorPage({
     .single();
   if (!sub) notFound();
 
-  const [{ shares, incidents }, { data: docs }, { data: contracts }] = await Promise.all([
+  const [{ shares, incidents }, { data: docs }, { data: contracts }, { data: payments }] = await Promise.all([
     fetchSubHistory(supabase, user!.id, id),
     supabase.from("subcontractor_docs").select("*").eq("subcontractor_id", id).eq("user_id", user!.id),
     supabase
@@ -34,6 +35,12 @@ export default async function SubcontractorPage({
       .eq("subcontractor_id", id)
       .eq("user_id", user!.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("sub_payments")
+      .select("id, contract_id, amount, paid_at, method, note")
+      .eq("subcontractor_id", id)
+      .eq("user_id", user!.id)
+      .order("paid_at", { ascending: false }),
   ]);
 
   // Compliance from the docs checklist when present, falling back to the
@@ -69,6 +76,7 @@ export default async function SubcontractorPage({
       incidents={incidents as SubIncidentRow[]}
       docs={docList}
       contracts={(contracts ?? []) as SubContractRow[]}
+      payments={(payments ?? []) as SubPaymentRow[]}
       baseUrl={publicBaseUrl()}
     />
   );

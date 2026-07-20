@@ -6,8 +6,10 @@ import { useLang } from "@/components/providers";
 import { TIER_STYLE, TIER_LABEL, type SubScore } from "@/lib/sub-score";
 import { SubDocsChecklist } from "@/components/sub-docs-checklist";
 import { SubContractsCard } from "@/components/sub-contracts-card";
+import { SubFinanceCard } from "@/components/sub-finance-card";
 import type { SubDoc } from "@/app/actions/subdocs";
 import type { SubContractRow } from "@/app/actions/sub-contracts";
+import type { SubPaymentRow } from "@/app/actions/sub-payments";
 import type { Subcontractor } from "@/lib/types";
 import type { SubShareHistory, SubIncidentRow } from "@/lib/sub-history";
 import {
@@ -59,6 +61,7 @@ export function SubProfile({
   incidents,
   docs,
   contracts,
+  payments,
   baseUrl,
 }: {
   sub: Subcontractor;
@@ -67,6 +70,7 @@ export function SubProfile({
   incidents: SubIncidentRow[];
   docs: SubDoc[];
   contracts: SubContractRow[];
+  payments: SubPaymentRow[];
   baseUrl: string;
 }) {
   const lang = useLang() as Lang;
@@ -149,6 +153,9 @@ export function SubProfile({
 
       {/* Signable contracts */}
       <SubContractsCard subcontractorId={sub.id} contracts={contracts} baseUrl={baseUrl} />
+
+      {/* Payments: contracted vs paid */}
+      <SubFinanceCard subcontractorId={sub.id} contracts={contracts} payments={payments} />
 
       {/* History */}
       <Card className="animate-fade-up">

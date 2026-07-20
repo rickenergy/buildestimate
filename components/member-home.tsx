@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useLang } from "@/components/providers";
+import { formatMoney } from "@/lib/format";
 import { PROFILE_LABELS, type AccessProfile } from "@/lib/access-profiles";
 import {
   HardHat,
@@ -10,6 +11,7 @@ import {
   Layers,
   ChevronRight,
   Sun,
+  Wallet,
 } from "lucide-react";
 
 type Lang = "en" | "pt" | "es";
@@ -34,12 +36,20 @@ export interface MemberTask {
   overdue: boolean;
 }
 
+export interface MemberFinance {
+  contracted: number;
+  paid: number;
+  contracts: { id: string; title: string; amount: number; paid: number }[];
+}
+
 export interface MemberHomeData {
   profile: AccessProfile;
   name: string;
   projects: MemberProject[];
   todayTasks: MemberTask[];
   linked: boolean; // false = login not linked to an employee record yet
+  /** subcontractor logins only: their own money (never the org's) */
+  finance?: MemberFinance | null;
 }
 
 const L = {
@@ -65,6 +75,10 @@ const L = {
   overdue: { en: "overdue", pt: "atrasadas", es: "atrasadas" },
   incidents: { en: "open incidents", pt: "incidentes abertos", es: "incidentes abiertos" },
   jobs: { en: "jobs", pt: "serviços", es: "trabajos" },
+  myMoney: { en: "My payments", pt: "Meus pagamentos", es: "Mis pagos" },
+  contracted: { en: "Contracted", pt: "Contratado", es: "Contratado" },
+  received: { en: "Received", pt: "Recebido", es: "Recibido" },
+  toReceive: { en: "To receive", pt: "A receber", es: "Por recibir" },
 } as const;
 
 export function MemberHome({ data }: { data: MemberHomeData }) {
@@ -129,6 +143,56 @@ export function MemberHome({ data }: { data: MemberHomeData }) {
           </Card>
         )}
       </section>
+
+      {/* My payments — subcontractor logins only, only THEIR money */}
+      {data.finance && (
+        <section className="animate-fade-up">
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+            <Wallet className="h-4 w-4" /> {tr(L.myMoney)}
+          </h2>
+          <Card>
+            <CardContent className="grid gap-3 p-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl bg-muted/50 p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{tr(L.contracted)}</p>
+                  <p className="text-sm font-bold tabular-nums">{formatMoney(data.finance.contracted, lang)}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-500/10 p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{tr(L.received)}</p>
+                  <p className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {formatMoney(data.finance.paid, lang)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-amber-500/10 p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{tr(L.toReceive)}</p>
+                  <p className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                    {formatMoney(Math.max(0, data.finance.contracted - data.finance.paid), lang)}
+                  </p>
+                </div>
+              </div>
+              {data.finance.contracts.map((c) => {
+                const pct = c.amount > 0 ? Math.min(100, Math.round((c.paid / c.amount) * 100)) : 0;
+                return (
+                  <div key={c.id} className="space-y-1">
+                    <div className="flex justify-between gap-2 text-xs">
+                      <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {formatMoney(c.paid, lang)} / {formatMoney(c.amount, lang)} · {pct}%
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-emerald-500" : "bg-primary"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Projects */}
       <section className="animate-fade-up">

@@ -35,11 +35,36 @@ export async function buildMemberHome(
     if (!subId) {
       return { profile, name: me?.full_name || "—", projects: [], todayTasks: [], linked: false };
     }
-    const { data: myShares } = await supabase
-      .from("estimate_shares")
-      .select("id, estimate_id, status, created_at")
-      .eq("subcontractor_id", subId)
-      .order("created_at", { ascending: false });
+    const [{ data: myShares }, { data: myContracts }, { data: myPayments }] = await Promise.all([
+      supabase
+        .from("estimate_shares")
+        .select("id, estimate_id, status, created_at")
+        .eq("subcontractor_id", subId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("sub_contracts")
+        .select("id, title, amount, status")
+        .eq("subcontractor_id", subId)
+        .eq("status", "signed"),
+      supabase.from("sub_payments").select("contract_id, amount").eq("subcontractor_id", subId),
+    ]);
+    const paidByContract = new Map<string, number>();
+    let paidTotal = 0;
+    for (const p of myPayments ?? []) {
+      paidTotal += Number(p.amount);
+      if (p.contract_id)
+        paidByContract.set(p.contract_id as string, (paidByContract.get(p.contract_id as string) ?? 0) + Number(p.amount));
+    }
+    const finance = {
+      contracted: (myContracts ?? []).reduce((s, c) => s + Number(c.amount), 0),
+      paid: paidTotal,
+      contracts: (myContracts ?? []).map((c) => ({
+        id: c.id as string,
+        title: c.title as string,
+        amount: Number(c.amount),
+        paid: paidByContract.get(c.id as string) ?? 0,
+      })),
+    };
     const shareJobIds = [...new Set((myShares ?? []).map((s) => s.estimate_id as string))];
     const [{ data: subJobs }, { data: subTasks }] = await Promise.all([
       shareJobIds.length
@@ -75,7 +100,7 @@ export async function buildMemberHome(
         due: (t.due_date as string) ?? null,
         overdue: (t.due_date as string) < today,
       }));
-    return { profile, name: me?.full_name || "—", projects, todayTasks, linked: true };
+    return { profile, name: me?.full_name || "—", projects, todayTasks, linked: true, finance };
   }
   const linked = !!employeeId || SEES_ALL.includes(profile);
 
