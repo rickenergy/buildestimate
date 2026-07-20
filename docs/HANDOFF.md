@@ -59,6 +59,15 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 - **Convite corrigido** — página em branco era client component fora do I18nProvider. Nova rota curta `/i/<nome-do-convidante>-<código>`, login respeita `?next=`, copiar com 1 clique.
 - **Módulo Subcontractor COMPLETO** — score 0–100 real + tiers; lista rankeada; ficha `/subcontractors/[id]`; **fase 2**: checklist de docs de contratação US (`subcontractor_docs`: W-9/COI/licença/contrato/lien waiver/SOV, validade, "pronto para contratar"), score lê docs reais, **login do sub vinculado** (convite com select de vínculo, RLS sub-lê-shares-dele, home própria do sub sem valores), e **contrato assinável**: template US (`lib/contract-template`), `sub_contracts` + RPCs por token, card na ficha gera link público `/c/[token]` com assinatura eletrônica por nome digitado; e **financeiro do sub**: `sub_payments`, card na ficha (contratado/pago/a-pagar + barra por contrato + registrar pagamento) e bloco "Meus pagamentos" na home do sub logado (só o dinheiro DELE). Spec: `docs/subcontractor-module.md`.
 
+## 🟡 EM ANDAMENTO — Blueprint takeoff assistido (Fase 1, 2026-07-20)
+- Submenu **/blueprints**: upload de planta (imagem/PDF) → `blueprints` table.
+- **`analyzeBlueprint`** (IA visão): retorna trades+confiança, escopo, e **perguntas confiança-gated** (tudo que não tem certeza — escala, uso do cômodo, alturas, símbolos — vira PERGUNTA ao GC, nunca chuta). GC responde (texto/voz) + escolhe o trade.
+- `BlueprintDetail`: mostra planta, escopo, trades com % honesto, perguntas, escolha de trade.
+- ⚠️ **PENDENTE: rodar `docs/pending-migrations.sql`** (MCP caiu — cria `blueprints` + `subcontractor_docs.file_path`). Sem isso, /blueprints e upload de doc quebram.
+- 🔴 Falta (Fase 2+): calibração de escala (GC marca 1 medida → fator), medição de áreas, virar estimate via motor determinístico, rasterizar PDF (v1 lê só imagem). Plano: `docs/blueprint-takeoff-plan.md`.
+- **Upload de PDF nos docs do sub** também entregou (📎 anexar / 📄 ver) — precisa a mesma migration.
+- **Email de reset lindo**: `docs/emails/reset-password.html` — colar no Supabase Auth templates.
+
 ## ✅ CONCLUÍDO 2026-07-18 (sessão Claude Code)
 - **#7 Store→inventory "mais barato por item"** — `item_store_prices` (RLS/FK/trigger, migration aplicada); badge "mais barato" no card + seção Preços por loja no dialog.
 - **#8 Task mapping por serviço** — `TRADE_TASKS` (14 trades) + `getServiceTasks` (determinístico/IA grounded) + `ServiceTasksCard` no estimate.
