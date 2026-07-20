@@ -37,6 +37,7 @@ export async function createInvite(fields: {
   label?: string;
   profile: AccessProfile;
   employeeId?: string | null;
+  subcontractorId?: string | null;
 }): Promise<CreateInviteResult> {
   const { supabase, user } = await requireOwner();
   // Short, human link: /i/<inviter>-<10 random hex chars>
@@ -52,6 +53,7 @@ export async function createInvite(fields: {
     label: fields.label?.trim() || null,
     access_profile: fields.profile,
     employee_id: fields.employeeId || null,
+    subcontractor_id: fields.subcontractorId || null,
     token,
   });
   if (error) return { ok: false, error: error.message };

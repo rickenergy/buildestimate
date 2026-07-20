@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLang } from "@/components/providers";
 import { TIER_STYLE, TIER_LABEL, type SubScore } from "@/lib/sub-score";
+import { SubDocsChecklist } from "@/components/sub-docs-checklist";
+import type { SubDoc } from "@/app/actions/subdocs";
 import type { Subcontractor } from "@/lib/types";
 import type { SubShareHistory, SubIncidentRow } from "@/lib/sub-history";
 import {
@@ -12,8 +14,6 @@ import {
   Mail,
   MessageCircle,
   ArrowLeft,
-  ShieldCheck,
-  ShieldAlert,
   History,
   TriangleAlert,
   Gauge,
@@ -55,11 +55,13 @@ export function SubProfile({
   score,
   shares,
   incidents,
+  docs,
 }: {
   sub: Subcontractor;
   score: SubScore;
   shares: SubShareHistory[];
   incidents: SubIncidentRow[];
+  docs: SubDoc[];
 }) {
   const lang = useLang() as Lang;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
@@ -136,32 +138,8 @@ export function SubProfile({
         </CardContent>
       </Card>
 
-      {/* Compliance */}
-      <Card className="animate-fade-up">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            {score.compliant ? (
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-            ) : (
-              <ShieldAlert className="h-4 w-4 text-amber-500" />
-            )}
-            {tr(L.docs)}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2 text-sm">
-          <DocRow label={tr(L.license)} ok={!!sub.license_number} detail={sub.license_number} tr={tr} />
-          <DocRow
-            label={tr(L.insurance)}
-            ok={!!sub.insurance_provider && !score.insuranceExpired}
-            detail={
-              sub.insurance_provider
-                ? `${sub.insurance_provider}${sub.insurance_expires ? ` · ${sub.insurance_expires}` : ""}${score.insuranceExpired ? ` (${tr(L.expired)})` : ""}`
-                : null
-            }
-            tr={tr}
-          />
-        </CardContent>
-      </Card>
+      {/* Hiring compliance checklist (W-9, COI, agreement…) */}
+      <SubDocsChecklist subcontractorId={sub.id} docs={docs} />
 
       {/* History */}
       <Card className="animate-fade-up">
@@ -232,26 +210,5 @@ export function SubProfile({
         </Card>
       )}
     </main>
-  );
-}
-
-function DocRow({
-  label,
-  ok,
-  detail,
-  tr,
-}: {
-  label: string;
-  ok: boolean;
-  detail: string | null;
-  tr: (m: Record<Lang, string>) => string;
-}) {
-  return (
-    <div className={`rounded-lg border px-3 py-2 ${ok ? "border-emerald-500/30" : "border-amber-500/40"}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`truncate text-sm font-medium ${ok ? "" : "text-amber-600 dark:text-amber-400"}`}>
-        {detail || (ok ? tr(L.ok) : tr(L.missing))}
-      </p>
-    </div>
   );
 }

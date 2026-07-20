@@ -23,8 +23,23 @@ export default async function SubcontractorPage({
     .single();
   if (!sub) notFound();
 
-  const { shares, incidents } = await fetchSubHistory(supabase, user!.id, id);
-  const score = scoreSubs([sub as Subcontractor], shares, incidents).get(id)!;
+  const [{ shares, incidents }, { data: docs }] = await Promise.all([
+    fetchSubHistory(supabase, user!.id, id),
+    supabase.from("subcontractor_docs").select("*").eq("subcontractor_id", id).eq("user_id", user!.id),
+  ]);
+
+  // Compliance from the docs checklist when present, falling back to the
+  // legacy license/insurance fields on the sub record.
+  const docList = docs ?? [];
+  const licenseDoc = docList.find((d) => d.doc_type === "license");
+  const coiDoc = docList.find((d) => d.doc_type === "coi");
+  const merged = {
+    ...(sub as Subcontractor),
+    license_number: licenseDoc ? (licenseDoc.reference ?? "doc") : (sub.license_number as string | null),
+    insurance_provider: coiDoc ? (coiDoc.reference ?? "COI") : (sub.insurance_provider as string | null),
+    insurance_expires: coiDoc ? (coiDoc.expires as string | null) : (sub.insurance_expires as string | null),
+  } as Subcontractor;
+  const score = scoreSubs([merged], shares, incidents).get(id)!;
 
   const history: SubShareHistory[] = shares.map((s) => {
     const est = Array.isArray(s.estimates) ? s.estimates[0] : s.estimates;
@@ -44,6 +59,7 @@ export default async function SubcontractorPage({
       score={score}
       shares={history}
       incidents={incidents as SubIncidentRow[]}
+      docs={docList}
     />
   );
 }

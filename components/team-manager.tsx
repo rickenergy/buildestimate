@@ -57,17 +57,31 @@ const L = {
     es: "Comparte este enlace con la persona — inicia sesión y obtiene este acceso.",
   },
   noMembers: { en: "No members yet.", pt: "Nenhum membro ainda.", es: "Sin miembros aún." },
+  linkTo: {
+    en: "Link to record (recommended)…",
+    pt: "Vincular ao cadastro (recomendado)…",
+    es: "Vincular al registro (recomendado)…",
+  },
   noInvites: { en: "No pending invites.", pt: "Nenhum convite pendente.", es: "Sin invitaciones pendientes." },
 } as const;
+
+export interface LinkOption {
+  id: string;
+  name: string;
+}
 
 export function TeamManager({
   members,
   invites,
   baseUrl,
+  employees = [],
+  subcontractors = [],
 }: {
   members: MemberRow[];
   invites: InviteRow[];
   baseUrl: string;
+  employees?: LinkOption[];
+  subcontractors?: LinkOption[];
 }) {
   const lang = useLang() as Lang;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
@@ -76,17 +90,26 @@ export function TeamManager({
   const [pending, startTransition] = useTransition();
   const [label, setLabel] = useState("");
   const [profile, setProfile] = useState<AccessProfile>("field");
+  const [linkedId, setLinkedId] = useState("");
   const [lastLink, setLastLink] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const linkFor = (token: string) => `${baseUrl}/i/${token}`;
+  // link the login to a sub record for the subcontractor profile, else to an employee
+  const linkOptions = profile === "subcontractor" ? subcontractors : employees;
 
   function generate() {
     startTransition(async () => {
-      const res = await createInvite({ label: label || undefined, profile });
+      const res = await createInvite({
+        label: label || undefined,
+        profile,
+        employeeId: profile !== "subcontractor" && linkedId ? linkedId : null,
+        subcontractorId: profile === "subcontractor" && linkedId ? linkedId : null,
+      });
       if (res.ok && res.token) {
         setLastLink(linkFor(res.token));
         setLabel("");
+        setLinkedId("");
         router.refresh();
       } else {
         toast.error(res.error ?? "Error");
@@ -124,7 +147,10 @@ export function TeamManager({
           <Input placeholder={tr(L.name)} value={label} onChange={(e) => setLabel(e.target.value)} />
           <select
             value={profile}
-            onChange={(e) => setProfile(e.target.value as AccessProfile)}
+            onChange={(e) => {
+              setProfile(e.target.value as AccessProfile);
+              setLinkedId("");
+            }}
             className="h-9 rounded-md border bg-background px-2 text-sm"
           >
             {INVITABLE_PROFILES.map((p) => (
@@ -133,6 +159,20 @@ export function TeamManager({
               </option>
             ))}
           </select>
+          {linkOptions.length > 0 && (
+            <select
+              value={linkedId}
+              onChange={(e) => setLinkedId(e.target.value)}
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="">{tr(L.linkTo)}</option>
+              {linkOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          )}
           <Button size="sm" disabled={pending} onClick={generate}>
             <Plus className="mr-1 h-4 w-4" /> {tr(L.generate)}
           </Button>

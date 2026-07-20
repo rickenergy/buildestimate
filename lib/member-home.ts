@@ -17,17 +17,66 @@ export async function buildMemberHome(
   orgId: string,
   profile: AccessProfile
 ): Promise<MemberHomeData> {
-  // who am I (display name + employee link)
+  // who am I (display name + employee/sub link)
   const [{ data: me }, { data: myMembership }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", userId).single(),
     supabase
       .from("org_members")
-      .select("employee_id")
+      .select("employee_id, subcontractor_id")
       .eq("member_user_id", userId)
       .eq("org_id", orgId)
       .single(),
   ]);
   const employeeId = myMembership?.employee_id ?? null;
+  const subId = myMembership?.subcontractor_id ?? null;
+
+  // Subcontractor login: their world is the jobs shared with them.
+  if (profile === "subcontractor") {
+    if (!subId) {
+      return { profile, name: me?.full_name || "—", projects: [], todayTasks: [], linked: false };
+    }
+    const { data: myShares } = await supabase
+      .from("estimate_shares")
+      .select("id, estimate_id, status, created_at")
+      .eq("subcontractor_id", subId)
+      .order("created_at", { ascending: false });
+    const shareJobIds = [...new Set((myShares ?? []).map((s) => s.estimate_id as string))];
+    const [{ data: subJobs }, { data: subTasks }] = await Promise.all([
+      shareJobIds.length
+        ? supabase.from("org_jobs_lite").select("id, title, status").in("id", shareJobIds)
+        : Promise.resolve({ data: [] as { id: string; title: string; status: string }[] }),
+      shareJobIds.length
+        ? supabase.from("job_tasks").select("id, estimate_id, title, status, due_date").in("estimate_id", shareJobIds)
+        : Promise.resolve({ data: [] as never[] }),
+    ]);
+    const jobTitle = new Map((subJobs ?? []).map((j) => [j.id as string, j.title as string]));
+    const today = new Date().toISOString().slice(0, 10);
+    const projects: MemberProject[] = (myShares ?? []).map((s) => {
+      const tasksFor = (subTasks ?? []).filter((t) => t.estimate_id === s.estimate_id);
+      return {
+        id: s.id as string,
+        name: jobTitle.get(s.estimate_id as string) ?? "—",
+        status: s.status as string,
+        address: null,
+        jobs: [],
+        tasksDone: tasksFor.filter((t) => t.status === "done").length,
+        tasksTotal: tasksFor.length,
+        overdue: tasksFor.filter((t) => t.status !== "done" && t.due_date && (t.due_date as string) < today).length,
+        incidentsOpen: 0,
+      };
+    });
+    const todayTasks: MemberTask[] = (subTasks ?? [])
+      .filter((t) => t.status !== "done" && t.due_date && (t.due_date as string) <= today)
+      .slice(0, 6)
+      .map((t) => ({
+        id: t.id as string,
+        title: t.title as string,
+        jobTitle: jobTitle.get(t.estimate_id as string) ?? null,
+        due: (t.due_date as string) ?? null,
+        overdue: (t.due_date as string) < today,
+      }));
+    return { profile, name: me?.full_name || "—", projects, todayTasks, linked: true };
+  }
   const linked = !!employeeId || SEES_ALL.includes(profile);
 
   // which projects
