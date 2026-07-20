@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchSubHistory, scoreSubs, type SubShareHistory, type SubIncidentRow } from "@/lib/sub-history";
 import { SubProfile } from "@/components/sub-profile";
+import { publicBaseUrl } from "@/lib/site-url";
+import type { SubContractRow } from "@/app/actions/sub-contracts";
 import type { Subcontractor } from "@/lib/types";
 
 export default async function SubcontractorPage({
@@ -23,9 +25,15 @@ export default async function SubcontractorPage({
     .single();
   if (!sub) notFound();
 
-  const [{ shares, incidents }, { data: docs }] = await Promise.all([
+  const [{ shares, incidents }, { data: docs }, { data: contracts }] = await Promise.all([
     fetchSubHistory(supabase, user!.id, id),
     supabase.from("subcontractor_docs").select("*").eq("subcontractor_id", id).eq("user_id", user!.id),
+    supabase
+      .from("sub_contracts")
+      .select("id, title, amount, status, token, signed_name, signed_at, created_at")
+      .eq("subcontractor_id", id)
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   // Compliance from the docs checklist when present, falling back to the
@@ -60,6 +68,8 @@ export default async function SubcontractorPage({
       shares={history}
       incidents={incidents as SubIncidentRow[]}
       docs={docList}
+      contracts={(contracts ?? []) as SubContractRow[]}
+      baseUrl={publicBaseUrl()}
     />
   );
 }

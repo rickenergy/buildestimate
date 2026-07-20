@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLang } from "@/components/providers";
 import { TIER_STYLE, TIER_LABEL, type SubScore } from "@/lib/sub-score";
 import { SubDocsChecklist } from "@/components/sub-docs-checklist";
+import { SubContractsCard } from "@/components/sub-contracts-card";
 import type { SubDoc } from "@/app/actions/subdocs";
+import type { SubContractRow } from "@/app/actions/sub-contracts";
 import type { Subcontractor } from "@/lib/types";
 import type { SubShareHistory, SubIncidentRow } from "@/lib/sub-history";
 import {
@@ -56,12 +58,16 @@ export function SubProfile({
   shares,
   incidents,
   docs,
+  contracts,
+  baseUrl,
 }: {
   sub: Subcontractor;
   score: SubScore;
   shares: SubShareHistory[];
   incidents: SubIncidentRow[];
   docs: SubDoc[];
+  contracts: SubContractRow[];
+  baseUrl: string;
 }) {
   const lang = useLang() as Lang;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
@@ -140,6 +146,9 @@ export function SubProfile({
 
       {/* Hiring compliance checklist (W-9, COI, agreement…) */}
       <SubDocsChecklist subcontractorId={sub.id} docs={docs} />
+
+      {/* Signable contracts */}
+      <SubContractsCard subcontractorId={sub.id} contracts={contracts} baseUrl={baseUrl} />
 
       {/* History */}
       <Card className="animate-fade-up">
