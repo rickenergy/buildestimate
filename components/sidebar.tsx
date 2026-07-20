@@ -14,6 +14,7 @@ import {
   Settings,
   Plus,
   Layers,
+  Map,
   MapPin,
   TriangleAlert,
   HardHat,
@@ -70,6 +71,7 @@ export function Sidebar({ memberMode = false }: { memberMode?: boolean }) {
 
   const manage = [
     { href: "/projects", label: t.newflow.projectsTitle, icon: Layers },
+    { href: "/blueprints", label: lang === "pt" ? "Plantas" : lang === "es" ? "Planos" : "Blueprints", icon: Map },
     { href: "/demand", label: t.demand.title, icon: MapPin },
     { href: "/incidents", label: lang === "pt" ? "Incidentes" : lang === "es" ? "Incidentes" : "Incidents", icon: TriangleAlert },
     { href: "/prices", label: t.prices.title, icon: BookOpen },
