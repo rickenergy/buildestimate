@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getMembership } from "@/lib/membership";
 import { NewEstimateTabs } from "@/components/new-estimate-tabs";
 import type { EstimateType } from "@/lib/types";
 
@@ -16,17 +17,17 @@ export default async function NewEstimatePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("min_margin_pct")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, membership] = await Promise.all([
+    supabase.from("profiles").select("min_margin_pct").eq("id", user!.id).single(),
+    getMembership(),
+  ]);
 
   return (
     <NewEstimateTabs
       minMarginPct={Number(profile?.min_margin_pct ?? 15)}
       estimateType={estimateType}
       projectId={project ?? null}
+      accessProfile={membership?.profile ?? "owner"}
     />
   );
 }

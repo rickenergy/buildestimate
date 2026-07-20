@@ -27,6 +27,12 @@ export default function LoginPage() {
   // Supabase, so users never hit "provider is not enabled".
   const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
 
+  // Honor ?next=/i/<token> (invite links) — same-origin paths only.
+  const nextPath = () => {
+    const n = new URLSearchParams(window.location.search).get("next");
+    return n && n.startsWith("/") && !n.startsWith("//") ? n : "/home";
+  };
+
   async function googleSignIn() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -59,7 +65,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push("/home");
+      router.push(nextPath());
       router.refresh();
     } else {
       const { data, error } = await supabase.auth.signUp({
@@ -78,7 +84,7 @@ export default function LoginPage() {
           .from("profiles")
           .update({ terms_accepted_at: new Date().toISOString() })
           .eq("id", data.user!.id);
-        router.push("/home");
+        router.push(nextPath());
         router.refresh();
       } else {
         // Email confirmation is off — no link is sent. Send them to sign in.

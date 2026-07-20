@@ -91,7 +91,7 @@ export function InviteAccept({ token, isLoggedIn }: { token: string; isLoggedIn:
           <div className="grid w-full gap-2">
             <p className="text-xs text-muted-foreground">{tr(L.loginFirst)}</p>
             <Link
-              href={`/login?next=/invite/${token}`}
+              href={`/login?next=/i/${token}`}
               className="press flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-primary text-sm font-medium text-primary-foreground"
             >
               <LogIn className="h-4 w-4" /> {tr(L.login)}

@@ -20,6 +20,18 @@ export interface CreateInviteResult {
   error?: string;
 }
 
+/** "Rique Construction" → "rique-construction" (ascii, max 14 chars). */
+function slugify(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 14)
+    .replace(/-$/, "");
+}
+
 /** Owner creates an invite; returns the token to build a shareable link. */
 export async function createInvite(fields: {
   label?: string;
@@ -27,7 +39,14 @@ export async function createInvite(fields: {
   employeeId?: string | null;
 }): Promise<CreateInviteResult> {
   const { supabase, user } = await requireOwner();
-  const token = crypto.randomBytes(16).toString("hex");
+  // Short, human link: /i/<inviter>-<10 random hex chars>
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("company_name, full_name")
+    .eq("id", user.id)
+    .single();
+  const slug = slugify(me?.company_name || me?.full_name || "join") || "join";
+  const token = `${slug}-${crypto.randomBytes(5).toString("hex")}`;
   const { error } = await supabase.from("org_invites").insert({
     org_id: user.id,
     label: fields.label?.trim() || null,

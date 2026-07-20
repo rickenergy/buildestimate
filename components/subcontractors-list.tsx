@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { useLang } from "@/components/providers";
 import { upsertSubcontractor, deleteSubcontractor, importSubcontractors } from "@/app/actions/network";
-import { HardHat, Phone, Mail, Plus, Trash2, ArrowLeft, ShieldCheck, Download } from "lucide-react";
+import { HardHat, Phone, Mail, Plus, Trash2, ArrowLeft, ShieldCheck, Download, Pencil } from "lucide-react";
+import { TIER_STYLE, type SubTier } from "@/lib/sub-score";
 import { exportToCsv } from "@/lib/csv-export";
 import { CsvImport, type ImportField } from "@/components/csv-import";
 
@@ -60,7 +60,13 @@ const L = {
   back: { en: "Back to settings", pt: "Voltar às configurações", es: "Volver a ajustes" },
 } as const;
 
-export function SubcontractorsList({ rows }: { rows: Subcontractor[] }) {
+export function SubcontractorsList({
+  rows,
+  scores,
+}: {
+  rows: Subcontractor[];
+  scores?: Record<string, { score: number; tier: SubTier }>;
+}) {
   const lang = useLang() as Lang;
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
   const router = useRouter();
@@ -105,10 +111,17 @@ export function SubcontractorsList({ rows }: { rows: Subcontractor[] }) {
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <HardHat className="h-5 w-5" />
                 </span>
-                <button className="min-w-0 flex-1 text-left" onClick={() => setEditing(s)}>
-                  <p className="truncate font-medium">
+                <Link href={`/subcontractors/${s.id}`} className="min-w-0 flex-1 text-left">
+                  <p className="flex items-center gap-1.5 truncate font-medium">
                     {s.name}
                     {s.trade ? <span className="text-muted-foreground"> · {s.trade}</span> : ""}
+                    {scores?.[s.id] && (
+                      <span
+                        className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${TIER_STYLE[scores[s.id].tier].cls}`}
+                      >
+                        {TIER_STYLE[scores[s.id].tier].emoji} {scores[s.id].score}
+                      </span>
+                    )}
                   </p>
                   <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
                     {s.company && <span className="truncate">{s.company}</span>}
@@ -128,7 +141,16 @@ export function SubcontractorsList({ rows }: { rows: Subcontractor[] }) {
                       </span>
                     )}
                   </p>
-                </button>
+                </Link>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 shrink-0 text-muted-foreground"
+                  aria-label="edit"
+                  onClick={() => setEditing(s)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 <Button
                   size="icon"
                   variant="ghost"

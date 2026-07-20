@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/p/", "/auth/", "/share/", "/invite/", "/api/keep-alive", "/privacy", "/terms"];
+const PUBLIC_PATHS = ["/login", "/p/", "/auth/", "/share/", "/i/", "/api/keep-alive", "/privacy", "/terms"];
 const isRootLanding = (pathname: string) => pathname === "/";
 
 export default async function proxy(request: NextRequest) {

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { InviteAccept } from "@/components/invite-accept";
 
-export default async function InvitePage({
+export default async function ShortInvitePage({
   params,
 }: {
   params: Promise<{ token: string }>;

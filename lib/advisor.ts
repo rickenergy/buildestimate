@@ -20,6 +20,9 @@ export type AdvisorCategory =
   | "compliance"
   | "risk";
 
+/** Who a question belongs to in the cascade (see docs/roles-matrix.md §3). */
+export type AdvisorAudience = "sales" | "tech" | "ops";
+
 export interface AdvisorQuestion {
   id: string;
   category: AdvisorCategory;
@@ -28,6 +31,8 @@ export interface AdvisorQuestion {
   why: Tri;
   /** Only ask when materials are the contractor's responsibility. */
   materialsOnly?: boolean;
+  /** Cascade owner — defaults to "tech" (the construction-savvy profiles). */
+  audience?: AdvisorAudience;
 }
 
 const BOTH: EstimateType[] = ["residential", "commercial"];
@@ -315,14 +320,120 @@ export const ADVISOR_QUESTIONS: AdvisorQuestion[] = [
   },
 ];
 
+/* ---------- sales questions (audience: sales) ---------- */
+// The client-facing interview the seller runs. Construction-savvy profiles
+// skip these — they live the technical cascade instead.
+const SALES_QUESTIONS: AdvisorQuestion[] = [
+  {
+    id: "client_budget",
+    category: "scope",
+    types: BOTH,
+    audience: "sales",
+    q: {
+      en: "What budget does the client have in mind?",
+      es: "¿Qué presupuesto tiene en mente el cliente?",
+      pt: "Qual orçamento o cliente tem em mente?",
+    },
+    why: {
+      en: "Anchors the proposal — you present options inside their range, not above it.",
+      es: "Ancla la propuesta — presentas opciones dentro de su rango.",
+      pt: "Ancora a proposta — você apresenta opções dentro da faixa dele.",
+    },
+  },
+  {
+    id: "client_timeline",
+    category: "schedule",
+    types: BOTH,
+    audience: "sales",
+    q: {
+      en: "When does the client expect the job done?",
+      es: "¿Para cuándo espera el cliente el trabajo?",
+      pt: "Para quando o cliente espera o trabalho pronto?",
+    },
+    why: {
+      en: "Urgency changes price and crew planning — and reveals how serious they are.",
+      es: "La urgencia cambia precio y planificación — y revela qué tan serio es.",
+      pt: "Urgência muda preço e planejamento — e revela o quão sério ele está.",
+    },
+  },
+  {
+    id: "decision_maker",
+    category: "scope",
+    types: BOTH,
+    audience: "sales",
+    q: {
+      en: "Who decides — just them, or a partner/spouse too?",
+      es: "¿Quién decide — solo él, o también pareja/socio?",
+      pt: "Quem decide — só ele, ou sócio/cônjuge também?",
+    },
+    why: {
+      en: "Proposals die when the real decision-maker never saw them. Present to everyone.",
+      es: "Las propuestas mueren cuando el decisor real nunca las vio.",
+      pt: "Propostas morrem quando o decisor real nunca as viu. Apresente a todos.",
+    },
+  },
+  {
+    id: "competition",
+    category: "risk",
+    types: BOTH,
+    audience: "sales",
+    q: {
+      en: "Are they getting other quotes? What matters most — price, speed or quality?",
+      es: "¿Está pidiendo otras cotizaciones? ¿Qué pesa más — precio, rapidez o calidad?",
+      pt: "Está pedindo outros orçamentos? O que pesa mais — preço, prazo ou qualidade?",
+    },
+    why: {
+      en: "Tells you how to position: cheapest, fastest, or best — never all three.",
+      es: "Te dice cómo posicionarte: más barato, más rápido o mejor.",
+      pt: "Diz como se posicionar: mais barato, mais rápido ou melhor — nunca os três.",
+    },
+  },
+  {
+    id: "payment_pref",
+    category: "scope",
+    types: BOTH,
+    audience: "sales",
+    q: {
+      en: "How do they prefer to pay? Need financing?",
+      es: "¿Cómo prefiere pagar? ¿Necesita financiamiento?",
+      pt: "Como prefere pagar? Precisa de financiamento?",
+    },
+    why: {
+      en: "Payment friction kills closed deals — solve it before the proposal.",
+      es: "La fricción de pago mata ventas cerradas — resuélvela antes.",
+      pt: "Fricção de pagamento mata venda fechada — resolva antes da proposta.",
+    },
+  },
+  {
+    id: "referral_source",
+    category: "scope",
+    types: BOTH,
+    audience: "sales",
+    q: {
+      en: "How did they find the company?",
+      es: "¿Cómo conoció la empresa?",
+      pt: "Como conheceu a empresa?",
+    },
+    why: {
+      en: "Referrals close at 2–3× the rate — and you learn which channel earns money.",
+      es: "Las referencias cierran 2–3× más — y sabes qué canal da dinheiro.",
+      pt: "Indicação fecha 2–3× mais — e você descobre qual canal dá dinheiro.",
+    },
+  },
+];
+
+export const ALL_ADVISOR_QUESTIONS: AdvisorQuestion[] = [...SALES_QUESTIONS, ...ADVISOR_QUESTIONS];
+
 /** Questions relevant to a given estimate type + materials responsibility. */
 export function advisorFor(
   type: EstimateType,
-  materialsIncluded: boolean
+  materialsIncluded: boolean,
+  audiences?: AdvisorAudience[]
 ): AdvisorQuestion[] {
-  return ADVISOR_QUESTIONS.filter(
+  return ALL_ADVISOR_QUESTIONS.filter(
     (question) =>
       question.types.includes(type) &&
-      (!question.materialsOnly || materialsIncluded)
+      (!question.materialsOnly || materialsIncluded) &&
+      (!audiences || audiences.includes(question.audience ?? "tech"))
   );
 }

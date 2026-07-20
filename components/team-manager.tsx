@@ -79,7 +79,7 @@ export function TeamManager({
   const [lastLink, setLastLink] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const linkFor = (token: string) => `${baseUrl}/invite/${token}`;
+  const linkFor = (token: string) => `${baseUrl}/i/${token}`;
 
   function generate() {
     startTransition(async () => {

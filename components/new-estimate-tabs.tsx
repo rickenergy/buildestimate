@@ -11,13 +11,16 @@ import { EstimateContextProvider } from "@/components/new-estimate-context";
 import type { EstimateType } from "@/lib/types";
 import { Sparkles, Wand2, Zap } from "lucide-react";
 
+import type { AccessProfile } from "@/lib/access-profiles";
+
 interface Props {
   minMarginPct: number;
   estimateType?: EstimateType | null;
   projectId?: string | null;
+  accessProfile?: AccessProfile;
 }
 
-export function NewEstimateTabs({ minMarginPct, estimateType = null, projectId = null }: Props) {
+export function NewEstimateTabs({ minMarginPct, estimateType = null, projectId = null, accessProfile = "owner" }: Props) {
   const t = useDict();
   const [materialsIncluded, setMaterialsIncluded] = useState(true);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -50,6 +53,7 @@ export function NewEstimateTabs({ minMarginPct, estimateType = null, projectId =
               onAnswerChange={(id, value) =>
                 setAnswers((prev) => ({ ...prev, [id]: value }))
               }
+              accessProfile={accessProfile}
             />
           )}
 

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useLang } from "@/components/providers";
 import { VoiceInput } from "@/components/voice-input";
 import { generateScopeQuestions, saveScopeAnswers, type ScopeQuestion } from "@/app/actions/scope-advisor";
+import { enqueueOffline } from "@/components/offline-support";
 import { MessagesSquare, Sparkles, Loader2, Save } from "lucide-react";
 
 type Lang = "en" | "pt" | "es";
@@ -69,9 +70,20 @@ export function AiScopeQuestions({
 
   function save() {
     startTransition(async () => {
-      await saveScopeAnswers(estimateId, answers);
-      router.refresh();
-      toast.success(tr(L.saved));
+      // offline: queue and sync when the connection returns
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        enqueueOffline({ kind: "scope_answers", estimateId, answers });
+        toast.success(tr(L.saved));
+        return;
+      }
+      try {
+        await saveScopeAnswers(estimateId, answers);
+        router.refresh();
+        toast.success(tr(L.saved));
+      } catch {
+        enqueueOffline({ kind: "scope_answers", estimateId, answers });
+        toast.success(tr(L.saved));
+      }
     });
   }
 
