@@ -15,6 +15,7 @@ export default function LoginPage() {
   const supabase = createClient();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -45,6 +46,10 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (mode === "signup" && email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+      setError("Emails don't match / Os emails não coincidem / Los correos no coinciden");
+      return;
+    }
     if (mode === "signup" && password !== confirmPassword) {
       setError("Passwords don't match / As senhas não coincidem / Las contraseñas no coinciden");
       return;
@@ -161,6 +166,21 @@ export default function LoginPage() {
                 autoComplete="email"
               />
             </div>
+            {mode === "signup" && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="confirmEmail">Confirm email / Confirmar email</Label>
+                <Input
+                  id="confirmEmail"
+                  type="email"
+                  value={confirmEmail}
+                  onChange={(e) => setConfirmEmail(e.target.value)}
+                  onPaste={(e) => e.preventDefault()}
+                  required
+                  autoComplete="off"
+                  placeholder="Re-type to avoid typos / Redigite p/ evitar erro"
+                />
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label htmlFor="password">Password / Senha</Label>
               <Input
