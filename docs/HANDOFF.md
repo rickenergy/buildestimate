@@ -53,9 +53,11 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
    - ✅ **RLS de membro (aditiva, aplicada em prod):** membro lê tabelas OPERACIONAIS (projects, project_assignments, job_tasks, safety_checks, job_photos, incidents) via `is_org_member(user_id)`. Policies do dono intactas. Financeiro/estimates/cadastros = **só dono** (sensível).
    - ✅ **Telas por perfil (2026-07-18):** view `org_jobs_lite` (jobs sem dinheiro p/ membros); **MemberHome** no /home (membro logado vê: tarefas de hoje, projetos atribuídos com progresso, incidentes — PM vê todos, Field/Crew/Sub só os atribuídos via employee link); **nav reduzida** p/ membro (Home+Settings). **Dashboards de todos os 7 roles no /demand** com dados reais (Estimator variância, PM budget vs actual, Superintendent saúde por obra, Safety, Foreman, Scheduler agenda 14d).
    - 🔴 Falta: gating fino de custo/margem nas telas do dono quando membro Sales/Estimator ganhar acesso a estimates; wizard de perguntas em cascata por perfil (`audience` — spec §3 do roles-matrix); vincular `org_members.employee_id` na UI de convite (hoje via SQL). **Testar fluxo de membro com conta secundária antes de convidar gente real.**
-5. **Advisor dinâmico por voz + offline.**
-   - ✅ Feito: **ditado por voz** (`VoiceInput`); **advisor IA dinâmico** (`generateScopeQuestions` → perguntas específicas do job, resposta por voz/texto, salva em `advisor_answers`; `AiScopeQuestions` no estimate).
-   - 🔴 Falta: captura/uso **offline com sync**.
+5. **Advisor dinâmico por voz + offline.** ✅ **COMPLETO (2026-07-18):** ditado por voz; advisor IA dinâmico; **wizard em cascata por perfil** (perguntas de vendedor vs técnicas, uma por vez, `audience` em lib/advisor); **offline** (sw.js cacheia telas visitadas, banner offline, fila localStorage sincroniza respostas ao reconectar).
+
+## ✅ TAMBÉM 2026-07-18 (lote final)
+- **Convite corrigido** — página em branco era client component fora do I18nProvider. Nova rota curta `/i/<nome-do-convidante>-<código>`, login respeita `?next=`, copiar com 1 clique.
+- **Módulo Subcontractor (ficha+score)** — score 0–100 real (aceitação, velocidade de resposta, licença/seguro com validade, incidentes) + tiers 🥇🟢🟡🔴; lista rankeada; ficha `/subcontractors/[id]` com contato, compliance, histórico de shares e incidentes. Falta (fase 2): tabela de docs W-9/COI/contrato + login do sub + contrato assinável (spec em `docs/subcontractor-module.md`).
 
 ## ✅ CONCLUÍDO 2026-07-18 (sessão Claude Code)
 - **#7 Store→inventory "mais barato por item"** — `item_store_prices` (RLS/FK/trigger, migration aplicada); badge "mais barato" no card + seção Preços por loja no dialog.
