@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/components/providers";
-import { upsertSubDoc, deleteSubDoc, type SubDoc, type SubDocType } from "@/app/actions/subdocs";
-import { FileCheck2, Check, X, TriangleAlert } from "lucide-react";
+import { upsertSubDoc, deleteSubDoc, getSubDocUrl, type SubDoc, type SubDocType } from "@/app/actions/subdocs";
+import { uploadSubDoc } from "@/lib/upload-client";
+import { FileCheck2, Check, X, TriangleAlert, Paperclip, FileText, Loader2 } from "lucide-react";
 
 type Lang = "en" | "pt" | "es";
 
@@ -68,6 +70,10 @@ const L = {
   expired: { en: "Expired", pt: "Vencido", es: "Vencido" },
   ready: { en: "Ready to hire", pt: "Pronto para contratar", es: "Listo para contratar" },
   missing: { en: "missing required docs", pt: "docs obrigatórios faltando", es: "docs obligatorios faltantes" },
+  attach: { en: "Attach file", pt: "Anexar arquivo", es: "Adjuntar archivo" },
+  view: { en: "View file", pt: "Ver arquivo", es: "Ver archivo" },
+  uploaded: { en: "Uploaded — marked received.", pt: "Enviado — marcado como recebido.", es: "Subido — marcado como recibido." },
+  uploadFail: { en: "Upload failed.", pt: "Falha no upload.", es: "Falló la subida." },
 } as const;
 
 export function SubDocsChecklist({
@@ -82,6 +88,8 @@ export function SubDocsChecklist({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [expiryDraft, setExpiryDraft] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const byType = new Map(docs.map((d) => [d.doc_type, d]));
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -116,6 +124,32 @@ export function SubDocsChecklist({
         router.refresh();
       });
     }
+  }
+
+  async function onFile(meta: (typeof DOC_META)[number], file: File | undefined) {
+    if (!file) return;
+    setUploading(meta.type);
+    try {
+      const path = await uploadSubDoc(subcontractorId, meta.type, file);
+      await upsertSubDoc({
+        subcontractorId,
+        docType: meta.type,
+        expires: byType.get(meta.type)?.expires ?? (meta.hasExpiry ? expiryDraft[meta.type] || null : null),
+        filePath: path,
+      });
+      router.refresh();
+      toast.success(tr(L.uploaded));
+    } catch {
+      toast.error(tr(L.uploadFail));
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function openFile(path: string) {
+    const url = await getSubDocUrl(path);
+    if (url) window.open(url, "_blank", "noopener");
+    else toast.error(tr(L.uploadFail));
   }
 
   return (
@@ -186,6 +220,44 @@ export function SubDocsChecklist({
                   />
                 </label>
               )}
+
+              {/* File upload / view (PDF or image) */}
+              <div className="flex shrink-0 items-center gap-1">
+                <input
+                  ref={(el) => {
+                    fileRefs.current[meta.type] = el;
+                  }}
+                  type="file"
+                  accept="application/pdf,image/*"
+                  className="hidden"
+                  onChange={(e) => onFile(meta, e.target.files?.[0])}
+                />
+                {doc?.file_path && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-primary"
+                    aria-label={tr(L.view)}
+                    onClick={() => openFile(doc.file_path!)}
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  disabled={uploading === meta.type}
+                  aria-label={tr(L.attach)}
+                  onClick={() => fileRefs.current[meta.type]?.click()}
+                >
+                  {uploading === meta.type ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           );
         })}

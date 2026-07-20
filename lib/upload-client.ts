@@ -55,6 +55,29 @@ export async function uploadAttachment(kind: "photo" | "invoice", file: File): P
 }
 
 /**
+ * Upload a subcontractor compliance document (W-9, COI, license, contract…) to
+ * the private `photos` bucket under the owner's folder. Images are resized;
+ * PDFs upload as-is. Returns the storage path (view later via a signed URL).
+ */
+export async function uploadSubDoc(subId: string, docType: string, file: File): Promise<string> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const isImage = file.type.startsWith("image/");
+  const body: Blob = isImage ? await resizeImageToBlob(file) : file;
+  const ext = isImage ? "jpg" : file.name.split(".").pop()?.toLowerCase() || "pdf";
+  const contentType = isImage ? "image/jpeg" : file.type || "application/pdf";
+  const path = `${user.id}/subdocs/${subId}/${docType}-${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, body, { contentType });
+  if (error) throw error;
+  return path;
+}
+
+/**
  * Upload company branding (logo or wide banner) to the PUBLIC `logos` bucket and
  * return a permanent public URL. Public on purpose: the proposal page is opened
  * by clients who are not signed in, so a signed (expiring) URL would break.
