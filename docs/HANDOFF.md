@@ -57,7 +57,7 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 
 ## ✅ TAMBÉM 2026-07-18 (lote final)
 - **Convite corrigido** — página em branco era client component fora do I18nProvider. Nova rota curta `/i/<nome-do-convidante>-<código>`, login respeita `?next=`, copiar com 1 clique.
-- **Módulo Subcontractor (ficha+score)** — score 0–100 real (aceitação, velocidade de resposta, licença/seguro com validade, incidentes) + tiers 🥇🟢🟡🔴; lista rankeada; ficha `/subcontractors/[id]` com contato, compliance, histórico de shares e incidentes. Falta (fase 2): tabela de docs W-9/COI/contrato + login do sub + contrato assinável (spec em `docs/subcontractor-module.md`).
+- **Módulo Subcontractor COMPLETO** — score 0–100 real + tiers; lista rankeada; ficha `/subcontractors/[id]`; **fase 2**: checklist de docs de contratação US (`subcontractor_docs`: W-9/COI/licença/contrato/lien waiver/SOV, validade, "pronto para contratar"), score lê docs reais, **login do sub vinculado** (convite com select de vínculo, RLS sub-lê-shares-dele, home própria do sub sem valores), e **contrato assinável**: template US (`lib/contract-template`), `sub_contracts` + RPCs por token, card na ficha gera link público `/c/[token]` com assinatura eletrônica por nome digitado. Spec: `docs/subcontractor-module.md`.
 
 ## ✅ CONCLUÍDO 2026-07-18 (sessão Claude Code)
 - **#7 Store→inventory "mais barato por item"** — `item_store_prices` (RLS/FK/trigger, migration aplicada); badge "mais barato" no card + seção Preços por loja no dialog.
