@@ -1,7 +1,35 @@
 # ContractorOS AI — Handoff / Estado do Projeto
 
 > Doc de continuidade. Leia isto ao começar sessão nova depois de `/clear`.
-> Atualizado: 2026-07-17 (sessão do sidebar).
+> Atualizado: **2026-07-20** (sessão grande: multi-tenancy, subs completo, blueprint takeoff Fase 1+2).
+
+## ▶ COMECE AQUI (backup do que ficou pendente — 2026-07-20)
+
+### 🔴 Config do DONO (bloqueia features prontas) — fazer primeiro
+1. **RODAR `docs/pending-migrations.sql`** no SQL editor → https://supabase.com/dashboard/project/snvmpzlgngoohqovzeij/sql
+   (cria `blueprints` + colunas `trade_map`/`trade_scopes` + `subcontractor_docs.file_path`). **Sem isso /blueprints e upload de docs quebram.**
+2. **Colar 2 templates** de email (Supabase → Auth → Emails → Templates): `docs/emails/reset-password.html` (Reset Password) + `docs/emails/magic-link.html` (Magic Link).
+3. Ligar Security → **"Password changed"** (toggle).
+4. **Resend: verificar um domínio** (https://resend.com/domains) → trocar Sender de `onboarding@resend.dev` (hoje só entrega no gmail do dono) pro domínio → aí email chega a clientes/subs.
+5. Config Stripe (`STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + webhook `/api/stripe/webhook` + eventos checkout.session.completed / customer.subscription.deleted) + `SUPABASE_SERVICE_ROLE_KEY` na Vercel.
+6. VAPID (`npx web-push generate-vapid-keys` → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
+7. ✅ **JÁ FEITO pelo dono:** Confirm Email OFF · SMTP Resend (funciona, testado 200).
+
+### 🟡 Código pendente (retomar aqui)
+- **Blueprint Fase 3** (próximo): calibração de escala (GC marca 1 medida conhecida na imagem → fator px→ft) → medir áreas dos works selecionados → quantidades reais → vira estimate via motor determinístico (`lib/takeoff` + `calculate_estimate`). Base pronta: `lib/takeoff-methods.ts` (o que medir por trade), `blueprints.trade_scopes[trade].selected` (works escolhidos), `answers`.
+- **Push em eventos**: `notifyUser` existe mas nada dispara. Ligar em contrato assinado (RPC `sign_sub_contract`) e share respondido → precisa **Supabase DB Webhook → Edge Function → notifyUser** + VAPID.
+- **PDF grande**: cap de 40 folhas; falta UX de "2º upload" pro resto.
+- **RLS fino de custo/margem** quando Sales/Estimator ganharem acesso a estimates (hoje estimates = só dono).
+- **Testes automatizados** dos fluxos novos (vitest só cobre takeoff determinístico).
+
+### 🧹 Limpar (dados de teste no banco de PROD — criei testando ao vivo)
+Contas `owner8842@buildestimate.app` + `member8844@buildestimate.app` (senha Teste123456), sub "Carlos Drywall LLC", 1 contrato assinado, 1 pagamento, membership do Joao, e blueprints de teste. **Deletar antes dos beta users reais.**
+
+### Verificado ao vivo nesta sessão (logado, clicando)
+Signup→home · checklist first-steps · convite (link curto) · aceitar→member home · nav reduzida · **RLS: membro não vê financeiro do dono** · contrato criar→assinar público→owner reflete · financeiro sub · docs compliance · Confirm-OFF entra direto · SMTP reset 200. Zero erro de console, zero bug de runtime.
+
+---
+
 
 ## O que é
 SaaS Next.js 16 mobile-first de **estimates com IA para contractors** nos EUA.
@@ -59,7 +87,10 @@ Migrations Supabase são aplicadas direto no banco (não passam pelo git).
 - **Convite corrigido** — página em branco era client component fora do I18nProvider. Nova rota curta `/i/<nome-do-convidante>-<código>`, login respeita `?next=`, copiar com 1 clique.
 - **Módulo Subcontractor COMPLETO** — score 0–100 real + tiers; lista rankeada; ficha `/subcontractors/[id]`; **fase 2**: checklist de docs de contratação US (`subcontractor_docs`: W-9/COI/licença/contrato/lien waiver/SOV, validade, "pronto para contratar"), score lê docs reais, **login do sub vinculado** (convite com select de vínculo, RLS sub-lê-shares-dele, home própria do sub sem valores), e **contrato assinável**: template US (`lib/contract-template`), `sub_contracts` + RPCs por token, card na ficha gera link público `/c/[token]` com assinatura eletrônica por nome digitado; e **financeiro do sub**: `sub_payments`, card na ficha (contratado/pago/a-pagar + barra por contrato + registrar pagamento) e bloco "Meus pagamentos" na home do sub logado (só o dinheiro DELE). Spec: `docs/subcontractor-module.md`.
 
-## 🟡 EM ANDAMENTO — Blueprint takeoff assistido (Fase 1, 2026-07-20)
+## 🟡 EM ANDAMENTO — Blueprint takeoff assistido (Fase 1+2, 2026-07-20)
+- **Fase 2 (feito):** `mapPlanTrades` lê o índice → mapeia todos os trades do conjunto; `buildTradeScope(trade)` agrega o escopo do trade escolhido em todas as folhas, fundamentado em `lib/takeoff-methods.ts` (metodologia dos livros: o que/como medir por trade, dedução de aberturas, demão/waste), com perguntas confiança-gated; `selectTradeWorks` (GC seleciona works). UI: 1 ler índice → 2 escolher trade → 3 escopo com seleção (texto/voz). Multi-folha PDF via pdfjs (`lib/pdf-render`).
+- Fluxo antigo por-folha (`analyzeBlueprintPage`) continua como leitura secundária.
+
 - Submenu **/blueprints**: upload de planta (imagem/PDF) → `blueprints` table.
 - **`analyzeBlueprint`** (IA visão): retorna trades+confiança, escopo, e **perguntas confiança-gated** (tudo que não tem certeza — escala, uso do cômodo, alturas, símbolos — vira PERGUNTA ao GC, nunca chuta). GC responde (texto/voz) + escolhe o trade.
 - `BlueprintDetail`: mostra planta, escopo, trades com % honesto, perguntas, escolha de trade.
