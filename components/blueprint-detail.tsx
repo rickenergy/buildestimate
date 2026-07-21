@@ -13,6 +13,9 @@ import {
   analyzeBlueprintPage,
   saveBlueprintAnswers,
   setBlueprintTrade,
+  mapPlanTrades,
+  buildTradeScope,
+  selectTradeWorks,
   type BlueprintRow,
   type SheetType,
 } from "@/app/actions/blueprints";
@@ -24,6 +27,9 @@ import {
   CheckCircle2,
   Ruler,
   TriangleAlert,
+  ListChecks,
+  ClipboardList,
+  Ruler as RulerIcon,
 } from "lucide-react";
 
 type Lang = "en" | "pt" | "es";
@@ -81,6 +87,32 @@ const L = {
     pt: "Calibração de escala + medição de áreas é a próxima fase.",
     es: "Calibración de escala + medición de áreas es la próxima fase.",
   },
+  // Phase 2
+  mapTitle: { en: "1 · Understand the whole plan", pt: "1 · Entender a planta inteira", es: "1 · Entender todo el plano" },
+  mapHint: {
+    en: "AI reads the sheet index and maps every trade in the set — before any takeoff.",
+    pt: "A IA lê o índice e mapeia todos os trades do conjunto — antes de qualquer takeoff.",
+    es: "La IA lee el índice y mapea todos los oficios del conjunto — antes del takeoff.",
+  },
+  mapBtn: { en: "Read the plan index", pt: "Ler o índice da planta", es: "Leer el índice del plano" },
+  mapping: { en: "Reading the index…", pt: "Lendo o índice…", es: "Leyendo el índice…" },
+  pickTradeTitle: { en: "2 · Choose the trade to take off", pt: "2 · Escolha o trade pra fazer o takeoff", es: "2 · Elige el oficio" },
+  onSheets: { en: "on sheets", pt: "nas folhas", es: "en hojas" },
+  building: { en: "Finding all the work…", pt: "Buscando todos os trabalhos…", es: "Buscando todo el trabajo…" },
+  scopeTitle: { en: "3 · Scope of work", pt: "3 · Escopo do trabalho", es: "3 · Alcance del trabajo" },
+  scopeHint: {
+    en: "Everything found for this trade, per the book method. Select the works to take off.",
+    pt: "Tudo encontrado pra este trade, pela metodologia dos livros. Selecione os trabalhos.",
+    es: "Todo lo encontrado, según el método. Selecciona los trabajos.",
+  },
+  measure: { en: "Measure", pt: "Medir", es: "Medir" },
+  selectAll: { en: "Select all", pt: "Selecionar tudo", es: "Seleccionar todo" },
+  saveSel: { en: "Save selection", pt: "Salvar seleção", es: "Guardar selección" },
+  readyMeasure: {
+    en: "Selected works are queued. Next: calibrate scale, then measure quantities.",
+    pt: "Trabalhos selecionados na fila. A seguir: calibrar escala e medir quantidades.",
+    es: "Trabajos en cola. Siguiente: calibrar escala y medir.",
+  },
 } as const;
 
 export function BlueprintDetail({
@@ -97,9 +129,54 @@ export function BlueprintDetail({
   const [reading, setReading] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(blueprint.page_count === 1 ? 1 : null);
   const [answers, setAnswers] = useState<Record<string, string>>(blueprint.answers ?? {});
+  const [mapping, setMapping] = useState(false);
+  const [building, setBuilding] = useState<string | null>(null);
+  const initialSel = blueprint.chosen_trade
+    ? new Set(blueprint.trade_scopes?.[blueprint.chosen_trade]?.selected ?? [])
+    : new Set<string>();
+  const [pickedWorks, setPickedWorks] = useState<Set<string>>(initialSel);
 
   const pages = blueprint.pages ?? [];
   const analysis = blueprint.analysis ?? {};
+  const tradeMap = blueprint.trade_map ?? [];
+  const activeScope = blueprint.chosen_trade ? blueprint.trade_scopes?.[blueprint.chosen_trade] : undefined;
+
+  function runMap() {
+    setMapping(true);
+    startTransition(async () => {
+      const res = await mapPlanTrades(blueprint.id);
+      setMapping(false);
+      if (res.needsKey) toast.error(tr(L.needsKey));
+      else if (res.ok) router.refresh();
+      else toast.error(res.error ?? "Error");
+    });
+  }
+  function chooseTrade(trade: string) {
+    setBuilding(trade);
+    startTransition(async () => {
+      const res = await buildTradeScope(blueprint.id, trade);
+      setBuilding(null);
+      if (res.needsKey) toast.error(tr(L.needsKey));
+      else if (res.ok) router.refresh();
+      else toast.error(res.error ?? "Error");
+    });
+  }
+  function toggleWork(id: string) {
+    setPickedWorks((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+  function saveSelection() {
+    if (!blueprint.chosen_trade) return;
+    startTransition(async () => {
+      await selectTradeWorks(blueprint.id, blueprint.chosen_trade!, [...pickedWorks]);
+      router.refresh();
+      toast.success("✓");
+    });
+  }
 
   function analyze(i: number) {
     setReading(i);
@@ -135,7 +212,170 @@ export function BlueprintDetail({
       <h1 className="text-xl font-bold">{blueprint.name}</h1>
       <p className="-mt-2 text-sm text-muted-foreground">{tr(L.intro)}</p>
 
-      {/* Sheets grid */}
+      {/* ── Phase 2: whole-plan trade map → pick trade → scope ── */}
+      {/* Step 1: map trades */}
+      {tradeMap.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <ListChecks className="h-5 w-5" />
+            </span>
+            <p className="text-sm font-semibold">{tr(L.mapTitle)}</p>
+            <p className="max-w-sm text-xs text-muted-foreground">{tr(L.mapHint)}</p>
+            <Button disabled={mapping} onClick={runMap}>
+              {mapping ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1 h-4 w-4" />}
+              {mapping ? tr(L.mapping) : tr(L.mapBtn)}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Step 2: pick trade */}
+          <Card>
+            <CardContent className="grid gap-1.5 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{tr(L.pickTradeTitle)}</p>
+              {tradeMap.map((t) => {
+                const active = blueprint.chosen_trade === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => chooseTrade(t.key)}
+                    disabled={building !== null}
+                    className={
+                      "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition " +
+                      (active ? "border-primary bg-primary/5" : "hover:bg-muted")
+                    }
+                  >
+                    {building === t.key ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                    ) : active ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    ) : (
+                      <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate font-medium">{t.label}</span>
+                    {t.sheets.length > 0 && (
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {tr(L.onSheets)} {t.sheets.slice(0, 6).join(", ")}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {building && <p className="text-xs text-muted-foreground">{tr(L.building)}</p>}
+            </CardContent>
+          </Card>
+
+          {/* Step 3: scope of work for the chosen trade */}
+          {activeScope && (
+            <Card>
+              <CardContent className="grid gap-3 p-4">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <RulerIcon className="h-4 w-4 text-primary" /> {tr(L.scopeTitle)}
+                    {activeScope.method_note && (
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                        {activeScope.method_note}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{tr(L.scopeHint)}</p>
+                </div>
+
+                {activeScope.works.length > 0 && (
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPickedWorks(new Set(activeScope.works.map((w) => w.id)))}
+                    >
+                      {tr(L.selectAll)}
+                    </Button>
+                  </div>
+                )}
+
+                {activeScope.works.map((w) => {
+                  const on = pickedWorks.has(w.id);
+                  return (
+                    <button
+                      key={w.id}
+                      onClick={() => toggleWork(w.id)}
+                      className={
+                        "grid gap-1 rounded-lg border p-3 text-left transition " +
+                        (on ? "border-primary bg-primary/5" : "hover:bg-muted")
+                      }
+                    >
+                      <div className="flex items-start gap-2">
+                        <span
+                          className={
+                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border " +
+                            (on ? "border-primary bg-primary text-white" : "border-muted-foreground/40")
+                          }
+                        >
+                          {on && <CheckCircle2 className="h-3 w-3" />}
+                        </span>
+                        <span className="min-w-0 flex-1 text-sm font-medium">
+                          {w.label}
+                          {w.sheet != null && <span className="ml-1 text-xs text-muted-foreground">· {tr(L.sheets)} {w.sheet}</span>}
+                        </span>
+                      </div>
+                      {w.measures.length > 0 && (
+                        <p className="pl-6 text-xs text-muted-foreground">
+                          {tr(L.measure)}: {w.measures.join(" · ")}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+
+                {activeScope.questions.length > 0 && (
+                  <div className="grid gap-3 rounded-lg bg-muted/40 p-3">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold">
+                      <HelpCircle className="h-3.5 w-3.5 text-primary" /> {tr(L.questions)}
+                    </p>
+                    {activeScope.questions.map((qq) => (
+                      <div key={qq.id} className="grid gap-1">
+                        <p className="text-sm font-medium">{qq.q}</p>
+                        <p className="text-xs text-muted-foreground">💡 {qq.why}</p>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            value={answers[qq.id] ?? ""}
+                            onChange={(e) => setAnswers((s) => ({ ...s, [qq.id]: e.target.value }))}
+                            placeholder={tr(L.answer)}
+                            className="h-9"
+                          />
+                          <VoiceInput
+                            onTranscript={(text) =>
+                              setAnswers((s) => ({ ...s, [qq.id]: (s[qq.id]?.trim() ? `${s[qq.id].trim()} ` : "") + text }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1" disabled={pending} onClick={saveSelection}>
+                    {pending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
+                    {tr(L.saveSel)} ({pickedWorks.size})
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={pending} onClick={saveAnswers}>
+                    {tr(L.save)}
+                  </Button>
+                </div>
+                {pickedWorks.size > 0 && (
+                  <p className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                    <TriangleAlert className="h-3.5 w-3.5" /> {tr(L.readyMeasure)}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Sheets grid (per-sheet detail — secondary) */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {tr(L.sheets)} · {blueprint.page_count}

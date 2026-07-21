@@ -19,6 +19,8 @@ create table if not exists public.blueprints (
   analysis jsonb,          -- { "<pageIndex>": { sheet_type, sheet_label, trades[], scope, questions[], scale_detected } }
   answers jsonb,
   chosen_trade text,
+  trade_map jsonb,         -- [{ key, label, sheets[], confidence }] — trades no conjunto todo (Fase 2)
+  trade_scopes jsonb,      -- { "<trade>": { works[], questions[], method_note, selected[] } }
   scale_ref jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

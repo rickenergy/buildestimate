@@ -16,7 +16,7 @@ export default async function BlueprintPage({
 
   const { data } = await supabase
     .from("blueprints")
-    .select("id, name, file_path, is_image, page_count, pages, status, analysis, answers, chosen_trade, created_at")
+    .select("id, name, file_path, is_image, page_count, pages, status, analysis, answers, chosen_trade, trade_map, trade_scopes, created_at")
     .eq("id", id)
     .eq("user_id", user!.id)
     .single();

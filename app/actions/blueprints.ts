@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { methodFor } from "@/lib/takeoff-methods";
 
 const LANG_NAMES: Record<string, string> = {
   en: "English",
@@ -36,6 +37,25 @@ export interface BlueprintPage {
   path: string;
 }
 
+export interface TradeMapEntry {
+  key: string;
+  label: string;
+  sheets: number[]; // page indexes where this trade appears
+  confidence: number;
+}
+export interface TradeScopeWork {
+  id: string;
+  label: string; // the specific work item, e.g. "Paint bedrooms 1–3 walls & ceilings"
+  sheet: number | null;
+  measures: string[]; // what to measure for this item (from the book method)
+}
+export interface TradeScope {
+  works: TradeScopeWork[];
+  questions: BlueprintQuestion[];
+  method_note: string; // the takeoff method summary applied
+  selected?: string[]; // work ids the GC picked
+}
+
 export interface BlueprintRow {
   id: string;
   name: string;
@@ -47,6 +67,8 @@ export interface BlueprintRow {
   analysis: Record<string, SheetAnalysis> | null; // keyed by page index (string)
   answers: Record<string, string> | null;
   chosen_trade: string | null;
+  trade_map: TradeMapEntry[] | null;
+  trade_scopes: Record<string, TradeScope> | null; // keyed by trade
   created_at: string;
 }
 
@@ -188,6 +210,182 @@ Write scope and questions in ${LANG_NAMES[lang] ?? "English"}. Keep trade keys a
     if (/api key|unauthorized|401|credential/i.test(msg)) return { ok: false, needsKey: true };
     return { ok: false, error: msg };
   }
+}
+
+/* ---------- Phase 2: whole-set trade map + trade-first scope ---------- */
+
+const tradeMapSchema = z.object({
+  index_found: z.boolean().describe("true if a sheet index/drawing list was legible"),
+  trades: z
+    .array(
+      z.object({
+        key: z.string().describe("trade slug in English: painting, flooring, drywall, tile, roofing, framing, concrete, electrical, plumbing, hvac, sitework"),
+        label: z.string(),
+        sheets: z.array(z.number()).describe("page numbers where this trade's work appears (best guess from the index/sheets)"),
+        confidence: z.number().min(0).max(1),
+      })
+    )
+    .describe("Every trade present across the WHOLE plan set"),
+});
+
+/** Read the sheet index (first sheets) to map every trade in the whole set. */
+export async function mapPlanTrades(id: string): Promise<{ ok: boolean; needsKey?: boolean; error?: string }> {
+  const { supabase, user } = await requireUser();
+  if (!hasModelAccess()) return { ok: false, needsKey: true };
+  const { data: bp } = await supabase.from("blueprints").select("pages").eq("id", id).eq("user_id", user.id).single();
+  const pages = (bp?.pages as BlueprintPage[] | null) ?? [];
+  if (pages.length === 0) return { ok: false, error: "No pages" };
+
+  const { data: profile } = await supabase.from("profiles").select("language").eq("id", user.id).single();
+  const lang = (profile?.language as string) ?? "en";
+
+  // Index/cover is usually the first few sheets; sample first 3 + a couple more.
+  const sample = pages.slice(0, 3).concat(pages.slice(3).filter((_, i) => i % 4 === 0).slice(0, 3));
+  const images = (
+    await Promise.all(
+      sample.map(async (p) => {
+        const { data } = await supabase.storage.from("photos").createSignedUrl(p.path, 60 * 10);
+        return data?.signedUrl ? { type: "image" as const, image: data.signedUrl } : null;
+      })
+    )
+  ).filter(Boolean) as { type: "image"; image: string }[];
+
+  try {
+    const { output } = await generateText({
+      model: "anthropic/claude-sonnet-5",
+      output: Output.object({ schema: tradeMapSchema }),
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `You are reading a construction plan set to understand it BEFORE any takeoff. First find the sheet index / drawing list (usually on the first sheet) to learn which sheets exist and what disciplines they cover. Then list EVERY trade with work in this set and the sheet numbers where each appears. This is a ${pages.length}-sheet set; I'm showing you the index + a sample. Base sheet numbers on what you can read. Write labels in ${LANG_NAMES[lang] ?? "English"}, keep trade keys as English slugs.`,
+            },
+            ...images,
+          ],
+        },
+      ],
+    });
+    const trade_map: TradeMapEntry[] = (output?.trades ?? []).sort((a, b) => b.confidence - a.confidence);
+    await supabase.from("blueprints").update({ trade_map }).eq("id", id).eq("user_id", user.id);
+    revalidatePath(`/blueprints/${id}`);
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "AI error";
+    if (/api key|unauthorized|401|credential/i.test(msg)) return { ok: false, needsKey: true };
+    return { ok: false, error: msg };
+  }
+}
+
+const tradeScopeSchema = z.object({
+  works: z
+    .array(
+      z.object({
+        id: z.string().describe("short stable id"),
+        label: z.string().describe("the specific work item for this trade, e.g. 'Paint all bedroom walls & ceilings, level 4 finish'"),
+        sheet: z.number().nullable().describe("page number this item is on, if known"),
+        measures: z.array(z.string()).describe("what to measure for this item, per the takeoff method"),
+      })
+    )
+    .describe("Every distinct work item for the chosen trade found across the set"),
+  questions: z
+    .array(z.object({ id: z.string(), q: z.string(), why: z.string() }))
+    .describe("Anything you can't be sure of to quantify accurately — ask, never guess"),
+});
+
+/** Build the scope-of-work for ONE trade across the set, grounded in the book method. */
+export async function buildTradeScope(id: string, trade: string): Promise<{ ok: boolean; needsKey?: boolean; error?: string }> {
+  const { supabase, user } = await requireUser();
+  if (!hasModelAccess()) return { ok: false, needsKey: true };
+  const { data: bp } = await supabase
+    .from("blueprints")
+    .select("pages, trade_map, trade_scopes")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+  if (!bp) return { ok: false, error: "Not found" };
+  const pages = (bp.pages as BlueprintPage[] | null) ?? [];
+  const map = (bp.trade_map as TradeMapEntry[] | null) ?? [];
+
+  const { data: profile } = await supabase.from("profiles").select("language").eq("id", user.id).single();
+  const lang = (profile?.language as string) ?? "en";
+
+  // Prefer the sheets the trade map flagged for this trade; else first sheets.
+  const wanted = new Set(map.find((m) => m.key === trade)?.sheets ?? []);
+  const relevant = (wanted.size ? pages.filter((p) => wanted.has(p.i)) : pages).slice(0, 6);
+  const images = (
+    await Promise.all(
+      relevant.map(async (p) => {
+        const { data } = await supabase.storage.from("photos").createSignedUrl(p.path, 60 * 10);
+        return data?.signedUrl ? { type: "image" as const, image: data.signedUrl } : null;
+      })
+    )
+  ).filter(Boolean) as { type: "image"; image: string }[];
+
+  const method = methodFor(trade);
+  const methodText = method
+    ? `Follow this standard takeoff method (from US estimating/plan-reading practice):
+Division: ${method.division}
+Measure: ${method.measures.map((m) => `${m.what.en} (${m.unit}) — ${m.rule.en}`).join(" | ")}
+Always resolve: ${method.questions.map((q) => q.q.en).join(" | ")}
+Waste guidance: ${method.wasteHint.en}`
+    : `Use standard US takeoff practice for ${trade}: measure by the correct unit, deduct large openings, note waste, and ask what you can't quantify.`;
+
+  try {
+    const { output } = await generateText({
+      model: "anthropic/claude-sonnet-5",
+      output: Output.object({ schema: tradeScopeSchema }),
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `The contractor chose the trade "${trade}" to take off from this plan set. Find EVERY work item for this trade across the sheets shown and build the scope of work — the list of works the contractor will select from.
+
+${methodText}
+
+Rules:
+- Break the scope into distinct, selectable work items (e.g. per area/room/floor), each with what to measure.
+- Do NOT produce final quantities yet — scale calibration comes next. List WHAT to measure per item.
+- For anything you can't quantify accurately (scale, finishes, coats, prep, ambiguous areas) — add a question, never guess.
+- Write labels/questions in ${LANG_NAMES[lang] ?? "English"}.`,
+            },
+            ...images,
+          ],
+        },
+      ],
+    });
+
+    const scope: TradeScope = {
+      works: output?.works ?? [],
+      questions: output?.questions ?? [],
+      method_note: method ? method.division : "",
+    };
+    const trade_scopes = { ...((bp.trade_scopes as Record<string, TradeScope>) ?? {}), [trade]: scope };
+    await supabase
+      .from("blueprints")
+      .update({ trade_scopes, chosen_trade: trade, status: "takeoff" })
+      .eq("id", id)
+      .eq("user_id", user.id);
+    revalidatePath(`/blueprints/${id}`);
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "AI error";
+    if (/api key|unauthorized|401|credential/i.test(msg)) return { ok: false, needsKey: true };
+    return { ok: false, error: msg };
+  }
+}
+
+/** Save which work items the GC selected for the chosen trade. */
+export async function selectTradeWorks(id: string, trade: string, workIds: string[]) {
+  const { supabase, user } = await requireUser();
+  const { data: bp } = await supabase.from("blueprints").select("trade_scopes").eq("id", id).eq("user_id", user.id).single();
+  const scopes = (bp?.trade_scopes as Record<string, TradeScope>) ?? {};
+  if (scopes[trade]) scopes[trade].selected = workIds;
+  await supabase.from("blueprints").update({ trade_scopes: scopes }).eq("id", id).eq("user_id", user.id);
+  revalidatePath(`/blueprints/${id}`);
 }
 
 export async function saveBlueprintAnswers(id: string, answers: Record<string, string>) {
