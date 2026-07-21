@@ -7,33 +7,36 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/components/providers";
-import { uploadBlueprint } from "@/lib/upload-client";
-import { createBlueprint, deleteBlueprint, type BlueprintRow } from "@/app/actions/blueprints";
-import { Map, Upload, Loader2, ChevronRight, Trash2, FileText, ImageIcon } from "lucide-react";
+import { uploadBlueprintImageBlob, uploadBlueprintImageFile } from "@/lib/upload-client";
+import { renderPdfToImages } from "@/lib/pdf-render";
+import { createBlueprint, deleteBlueprint, type BlueprintPage, type BlueprintRow } from "@/app/actions/blueprints";
+import { Map, Upload, Loader2, ChevronRight, Trash2, FileStack, ImageIcon } from "lucide-react";
 
 type Lang = "en" | "pt" | "es";
 
 const L = {
   title: { en: "Blueprints & takeoff", pt: "Plantas & takeoff", es: "Planos & takeoff" },
   subtitle: {
-    en: "Upload a plan — AI reads it, asks what it can't be sure of, and preps the takeoff.",
-    pt: "Suba uma planta — a IA lê, pergunta o que não tem certeza e prepara o takeoff.",
-    es: "Sube un plano — la IA lo lee, pregunta lo que no puede asegurar y prepara el takeoff.",
+    en: "Upload a plan (PDF or image) — AI reads each sheet, classifies it, and asks what it can't be sure of.",
+    pt: "Suba uma planta (PDF ou imagem) — a IA lê cada folha, classifica e pergunta o que não tem certeza.",
+    es: "Sube un plano (PDF o imagen) — la IA lee cada hoja, la clasifica y pregunta lo que no puede asegurar.",
   },
-  upload: { en: "Upload plan", pt: "Subir planta", es: "Subir plano" },
+  upload: { en: "Upload plan (PDF or image)", pt: "Subir planta (PDF ou imagem)", es: "Subir plano (PDF o imagen)" },
   empty: { en: "No plans yet. Upload one to start.", pt: "Nenhuma planta ainda. Suba uma para começar.", es: "Sin planos aún. Sube uno para empezar." },
-  uploading: { en: "Uploading…", pt: "Enviando…", es: "Subiendo…" },
+  rendering: { en: "Reading pages", pt: "Lendo páginas", es: "Leyendo páginas" },
+  uploading: { en: "Uploading pages", pt: "Enviando páginas", es: "Subiendo páginas" },
   fail: { en: "Upload failed.", pt: "Falha no upload.", es: "Falló la subida." },
-  hint: {
-    en: "Tip: a clear photo or image of the sheet works best. PDF reading comes next.",
-    pt: "Dica: uma foto/imagem nítida da folha funciona melhor. Leitura de PDF vem a seguir.",
-    es: "Consejo: una foto/imagen nítida de la hoja funciona mejor. La lectura de PDF viene después.",
-  },
+  sheets: { en: "sheets", pt: "folhas", es: "hojas" },
   status: {
-    uploaded: { en: "Not analyzed", pt: "Não analisada", es: "Sin analizar" },
-    analyzed: { en: "Analyzed", pt: "Analisada", es: "Analizada" },
+    uploaded: { en: "Not read", pt: "Não lida", es: "Sin leer" },
+    analyzed: { en: "Read", pt: "Lida", es: "Leída" },
     takeoff: { en: "Takeoff started", pt: "Takeoff iniciado", es: "Takeoff iniciado" },
     done: { en: "Done", pt: "Concluída", es: "Hecha" },
+  },
+  capNote: {
+    en: "Big sets: first 40 sheets are loaded. Split the rest into a second upload.",
+    pt: "Plantas grandes: as 40 primeiras folhas são carregadas. Divida o resto num 2º upload.",
+    es: "Planos grandes: se cargan las primeras 40 hojas. Divide el resto en otra subida.",
   },
 } as const;
 
@@ -49,21 +52,37 @@ export function BlueprintsList({ rows }: { rows: BlueprintRow[] }) {
   const tr = (m: Record<Lang, string>) => m[lang] ?? m.en;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    setUploading(true);
     try {
-      const { path, isImage } = await uploadBlueprint(file);
-      const res = await createBlueprint({ name: file.name.replace(/\.[^.]+$/, ""), filePath: path, isImage });
+      let pages: BlueprintPage[] = [];
+      let isImage = true;
+
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        isImage = false;
+        setBusy(`${tr(L.rendering)}…`);
+        const rendered = await renderPdfToImages(file, (d, t) => setBusy(`${tr(L.rendering)} ${d}/${t}`));
+        for (let k = 0; k < rendered.length; k++) {
+          setBusy(`${tr(L.uploading)} ${k + 1}/${rendered.length}`);
+          const path = await uploadBlueprintImageBlob(rendered[k].blob);
+          pages.push({ i: rendered[k].index, path });
+        }
+      } else {
+        setBusy(`${tr(L.uploading)}…`);
+        const path = await uploadBlueprintImageFile(file);
+        pages = [{ i: 1, path }];
+      }
+
+      const res = await createBlueprint({ name: file.name.replace(/\.[^.]+$/, ""), pages, isImage });
       if (res.ok && res.id) router.push(`/blueprints/${res.id}`);
       else toast.error(res.error ?? tr(L.fail));
     } catch {
       toast.error(tr(L.fail));
     } finally {
-      setUploading(false);
+      setBusy(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
@@ -84,11 +103,11 @@ export function BlueprintsList({ rows }: { rows: BlueprintRow[] }) {
         className="hidden"
         onChange={(e) => onFile(e.target.files?.[0])}
       />
-      <Button className="press h-12 rounded-2xl" disabled={uploading} onClick={() => fileRef.current?.click()}>
-        {uploading ? <Loader2 className="mr-1 h-5 w-5 animate-spin" /> : <Upload className="mr-1 h-5 w-5" />}
-        {uploading ? tr(L.uploading) : tr(L.upload)}
+      <Button className="press h-12 rounded-2xl" disabled={!!busy} onClick={() => fileRef.current?.click()}>
+        {busy ? <Loader2 className="mr-1 h-5 w-5 animate-spin" /> : <Upload className="mr-1 h-5 w-5" />}
+        {busy ?? tr(L.upload)}
       </Button>
-      <p className="-mt-2 px-1 text-xs text-muted-foreground">{tr(L.hint)}</p>
+      <p className="-mt-2 px-1 text-xs text-muted-foreground">{tr(L.capNote)}</p>
 
       {rows.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">{tr(L.empty)}</p>
@@ -98,12 +117,12 @@ export function BlueprintsList({ rows }: { rows: BlueprintRow[] }) {
             <Card key={b.id} className="animate-fade-up">
               <CardContent className="flex items-center gap-3 p-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  {b.is_image ? <ImageIcon className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                  {b.is_image ? <ImageIcon className="h-5 w-5" /> : <FileStack className="h-5 w-5" />}
                 </span>
                 <Link href={`/blueprints/${b.id}`} className="min-w-0 flex-1">
                   <p className="truncate font-medium">{b.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {b.created_at.slice(0, 10)}
+                    {b.page_count} {tr(L.sheets)} · {b.created_at.slice(0, 10)}
                     {b.chosen_trade ? ` · ${b.chosen_trade}` : ""}
                   </p>
                 </Link>

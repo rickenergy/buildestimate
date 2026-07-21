@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BlueprintDetail } from "@/components/blueprint-detail";
-import type { BlueprintRow } from "@/app/actions/blueprints";
+import { getBlueprintPageUrls, type BlueprintRow } from "@/app/actions/blueprints";
 
 export default async function BlueprintPage({
   params,
@@ -16,17 +16,13 @@ export default async function BlueprintPage({
 
   const { data } = await supabase
     .from("blueprints")
-    .select("id, name, file_path, is_image, status, analysis, answers, chosen_trade, created_at")
+    .select("id, name, file_path, is_image, page_count, pages, status, analysis, answers, chosen_trade, created_at")
     .eq("id", id)
     .eq("user_id", user!.id)
     .single();
   if (!data) notFound();
 
-  let imageUrl: string | null = null;
-  if (data.is_image) {
-    const { data: signed } = await supabase.storage.from("photos").createSignedUrl(data.file_path, 60 * 60);
-    imageUrl = signed?.signedUrl ?? null;
-  }
+  const pageUrls = await getBlueprintPageUrls(id);
 
-  return <BlueprintDetail blueprint={data as BlueprintRow} imageUrl={imageUrl} />;
+  return <BlueprintDetail blueprint={data as BlueprintRow} pageUrls={pageUrls} />;
 }

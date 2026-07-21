@@ -11,21 +11,29 @@ const LANG_NAMES: Record<string, string> = {
   es: "Spanish",
 };
 
+export type SheetType = "architectural" | "structural" | "mep" | "civil" | "demolition" | "landscape" | "other";
+
 export interface BlueprintTrade {
   key: string;
   label: string;
-  confidence: number; // 0–1
+  confidence: number;
 }
 export interface BlueprintQuestion {
   id: string;
   q: string;
   why: string;
 }
-export interface BlueprintAnalysis {
+export interface SheetAnalysis {
+  sheet_type: SheetType;
+  sheet_label: string;
   trades: BlueprintTrade[];
   scope: string;
   questions: BlueprintQuestion[];
   scale_detected: boolean;
+}
+export interface BlueprintPage {
+  i: number;
+  path: string;
 }
 
 export interface BlueprintRow {
@@ -33,8 +41,10 @@ export interface BlueprintRow {
   name: string;
   file_path: string;
   is_image: boolean;
+  page_count: number;
+  pages: BlueprintPage[] | null;
   status: string;
-  analysis: BlueprintAnalysis | null;
+  analysis: Record<string, SheetAnalysis> | null; // keyed by page index (string)
   answers: Record<string, string> | null;
   chosen_trade: string | null;
   created_at: string;
@@ -56,43 +66,44 @@ const hasModelAccess = () =>
   !!process.env.VERCEL_OIDC_TOKEN;
 
 const schema = z.object({
+  sheet_type: z
+    .enum(["architectural", "structural", "mep", "civil", "demolition", "landscape", "other"])
+    .describe("The drawing discipline of THIS sheet"),
+  sheet_label: z.string().describe("The sheet's own title/number if legible (e.g. 'A-101 First Floor Plan'), else a short description"),
+  scale_detected: z.boolean().describe("true only if a clear printed drawing scale is legible on this sheet"),
   trades: z
     .array(
       z.object({
-        key: z.string().describe("trade slug, e.g. flooring, drywall, painting, tile, framing, roofing"),
-        label: z.string().describe("human label for the trade"),
-        confidence: z.number().min(0).max(1).describe("0–1 how sure you are this trade appears"),
+        key: z.string().describe("trade slug in English, e.g. flooring, drywall, painting, tile, framing, roofing, concrete, electrical, plumbing, hvac"),
+        label: z.string(),
+        confidence: z.number().min(0).max(1),
       })
     )
-    .describe("Trades you can see work for on this plan"),
-  scope: z.string().describe("2–4 sentences: what this sheet shows and the visible scope"),
-  scale_detected: z.boolean().describe("true only if a clear, reliable drawing scale is printed and legible"),
+    .describe("Trades that have work shown on THIS sheet"),
+  scope: z.string().describe("2–4 sentences: what this sheet shows and the visible scope of work"),
   questions: z
-    .array(
-      z.object({
-        id: z.string().describe("short stable id, e.g. scale, room_use, ceiling_height"),
-        q: z.string().describe("the question for the contractor"),
-        why: z.string().describe("one line: why it matters for an accurate takeoff"),
-      })
-    )
-    .describe("EVERYTHING you cannot determine with high confidence becomes a question here — never guess"),
+    .array(z.object({ id: z.string(), q: z.string(), why: z.string() }))
+    .describe("EVERYTHING you can't determine with high confidence on this sheet becomes a question — never guess"),
 });
 
-/** Create the blueprint record after the client uploads the file. */
+/** Create the blueprint record after the client uploads page image(s). */
 export async function createBlueprint(fields: {
   name: string;
-  filePath: string;
-  isImage: boolean;
+  pages: BlueprintPage[];
+  isImage: boolean; // true = single image upload, false = came from a PDF
   projectId?: string | null;
 }): Promise<{ ok: boolean; id?: string; error?: string }> {
   const { supabase, user } = await requireUser();
+  if (fields.pages.length === 0) return { ok: false, error: "No pages" };
   const { data, error } = await supabase
     .from("blueprints")
     .insert({
       user_id: user.id,
       name: fields.name.trim() || "Plan",
-      file_path: fields.filePath,
+      file_path: fields.pages[0].path,
       is_image: fields.isImage,
+      page_count: fields.pages.length,
+      pages: fields.pages,
       project_id: fields.projectId || null,
     })
     .select("id")
@@ -103,26 +114,32 @@ export async function createBlueprint(fields: {
 }
 
 /**
- * AI reads the plan and returns detected trades, scope, and — crucially —
- * a question for ANYTHING it can't determine with high confidence (scale,
- * ambiguous areas, missing dimensions, room use). It never guesses those.
+ * AI reads ONE sheet: classifies its discipline (architectural/structural/
+ * MEP/civil…), lists the trades with honest confidence, describes the scope,
+ * and — for anything it can't be sure of — asks a question instead of guessing.
  */
-export async function analyzeBlueprint(id: string): Promise<{ ok: boolean; needsKey?: boolean; needsImage?: boolean; error?: string }> {
+export async function analyzeBlueprintPage(
+  id: string,
+  pageIndex: number
+): Promise<{ ok: boolean; needsKey?: boolean; error?: string }> {
   const { supabase, user } = await requireUser();
+  if (!hasModelAccess()) return { ok: false, needsKey: true };
+
   const { data: bp } = await supabase
     .from("blueprints")
-    .select("file_path, is_image")
+    .select("pages, analysis")
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
   if (!bp) return { ok: false, error: "Not found" };
-  if (!bp.is_image) return { ok: false, needsImage: true }; // PDF rasterization = phase 2
-  if (!hasModelAccess()) return { ok: false, needsKey: true };
+  const pages = (bp.pages as BlueprintPage[] | null) ?? [];
+  const page = pages.find((p) => p.i === pageIndex);
+  if (!page) return { ok: false, error: "Page not found" };
 
   const { data: profile } = await supabase.from("profiles").select("language").eq("id", user.id).single();
   const lang = (profile?.language as string) ?? "en";
 
-  const { data: signed } = await supabase.storage.from("photos").createSignedUrl(bp.file_path, 60 * 10);
+  const { data: signed } = await supabase.storage.from("photos").createSignedUrl(page.path, 60 * 10);
   if (!signed?.signedUrl) return { ok: false, error: "file" };
 
   try {
@@ -135,14 +152,17 @@ export async function analyzeBlueprint(id: string): Promise<{ ok: boolean; needs
           content: [
             {
               type: "text",
-              text: `You are an assisted construction takeoff engine. A contractor uploaded this plan sheet. Read it and prepare the ground for a takeoff.
+              text: `You are an assisted construction takeoff engine reading ONE sheet of a plan set. This is ASSISTED — never invent a number you aren't sure of.
 
-Rules — this is ASSISTED, not automatic:
-- List the trades you can actually see work for, each with an honest confidence (0–1).
+Do:
+- Classify the sheet's discipline (architectural, structural, mep, civil, demolition, landscape, other).
+- Read its own title/number if legible.
+- List the trades with visible work on THIS sheet, each with an honest confidence (0–1).
 - Describe the visible scope in 2–4 sentences.
-- CRITICAL: for ANYTHING you cannot determine with high confidence — the drawing scale, room use, ceiling heights, wall types, finish specs, ambiguous symbols, missing dimensions — DO NOT GUESS. Turn it into a clear question for the contractor. It is better to ask than to invent a number.
-- Always ask about scale unless a clear printed scale is legible (set scale_detected accordingly).
-- Write all questions and the scope in ${LANG_NAMES[lang] ?? "English"}. Keep trade keys in English slugs.`,
+- CRITICAL: for anything you can't determine with high confidence — scale, room use, ceiling heights, wall types, finishes, ambiguous symbols, missing dimensions — DO NOT GUESS. Turn it into a clear question for the contractor.
+- Always question the scale unless a clear printed scale is legible.
+
+Write scope and questions in ${LANG_NAMES[lang] ?? "English"}. Keep trade keys as English slugs.`,
             },
             { type: "image", image: signed.signedUrl },
           ],
@@ -150,18 +170,17 @@ Rules — this is ASSISTED, not automatic:
       ],
     });
 
-    const analysis: BlueprintAnalysis = {
+    const sheet: SheetAnalysis = {
+      sheet_type: output?.sheet_type ?? "other",
+      sheet_label: output?.sheet_label ?? `Sheet ${pageIndex}`,
       trades: (output?.trades ?? []).sort((a, b) => b.confidence - a.confidence),
       scope: output?.scope ?? "",
       questions: output?.questions ?? [],
       scale_detected: output?.scale_detected ?? false,
     };
 
-    await supabase
-      .from("blueprints")
-      .update({ analysis, status: "analyzed" })
-      .eq("id", id)
-      .eq("user_id", user.id);
+    const analysis = { ...((bp.analysis as Record<string, SheetAnalysis>) ?? {}), [String(pageIndex)]: sheet };
+    await supabase.from("blueprints").update({ analysis, status: "analyzed" }).eq("id", id).eq("user_id", user.id);
     revalidatePath(`/blueprints/${id}`);
     return { ok: true };
   } catch (err) {
@@ -195,9 +214,17 @@ export async function deleteBlueprint(id: string) {
   revalidatePath("/blueprints");
 }
 
-/** Signed URL to display the plan. */
-export async function getBlueprintUrl(filePath: string): Promise<string | null> {
-  const { supabase } = await requireUser();
-  const { data } = await supabase.storage.from("photos").createSignedUrl(filePath, 60 * 60);
-  return data?.signedUrl ?? null;
+/** Signed URLs (1h) for the plan pages, keyed by page index. */
+export async function getBlueprintPageUrls(id: string): Promise<Record<number, string>> {
+  const { supabase, user } = await requireUser();
+  const { data: bp } = await supabase.from("blueprints").select("pages").eq("id", id).eq("user_id", user.id).single();
+  const pages = (bp?.pages as BlueprintPage[] | null) ?? [];
+  const out: Record<number, string> = {};
+  await Promise.all(
+    pages.map(async (p) => {
+      const { data } = await supabase.storage.from("photos").createSignedUrl(p.path, 60 * 60);
+      if (data?.signedUrl) out[p.i] = data.signedUrl;
+    })
+  );
+  return out;
 }

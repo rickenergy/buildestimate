@@ -5,7 +5,7 @@
 -- 1) Upload de PDF/foto nos docs de subcontratado
 alter table public.subcontractor_docs add column if not exists file_path text;
 
--- 2) Blueprints / takeoff assistido
+-- 2) Blueprints / takeoff assistido (multi-folha: PDF vira páginas)
 create table if not exists public.blueprints (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -13,8 +13,10 @@ create table if not exists public.blueprints (
   name text not null,
   file_path text not null,
   is_image boolean not null default true,
+  page_count int not null default 1,
+  pages jsonb,             -- [{ i, path }] uma entrada por folha renderizada
   status text not null default 'uploaded' check (status in ('uploaded','analyzed','takeoff','done')),
-  analysis jsonb,
+  analysis jsonb,          -- { "<pageIndex>": { sheet_type, sheet_label, trades[], scope, questions[], scale_detected } }
   answers jsonb,
   chosen_trade text,
   scale_ref jsonb,
