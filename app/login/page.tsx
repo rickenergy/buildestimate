@@ -43,6 +43,33 @@ export default function LoginPage() {
     if (error) setError(error.message);
   }
 
+  /** Passwordless: email a one-time sign-in link (no password to remember). */
+  async function magicLink() {
+    if (!email.trim()) {
+      setError("Enter your email first / Informe seu email / Ingresa tu email");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      setError(
+        "Couldn't send the link. Check your email settings and try again. / Não deu para enviar o link. Verifique a config de email. / No se pudo enviar el enlace."
+      );
+      return;
+    }
+    setMessage(
+      "Sign-in link sent — check your email. / Link de acesso enviado — veja seu email. / Enlace enviado — revisa tu correo."
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -255,6 +282,17 @@ export default function LoginPage() {
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "…" : mode === "signin" ? "Sign in / Entrar" : "Create account / Criar conta"}
             </Button>
+
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={magicLink}
+                disabled={loading}
+                className="press flex w-full items-center justify-center gap-1.5 rounded-md border py-2 text-sm font-medium hover:bg-muted"
+              >
+                ✨ Email me a link (no password) / Enviar link (sem senha)
+              </button>
+            )}
           </form>
 
           {googleEnabled && (
