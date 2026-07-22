@@ -71,3 +71,16 @@ export function polygonLf(pts: Pt[], pxPerFt: number, closed = true): number {
 export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+/** Key under which per-page px/ft calibration is stored in the answers jsonb. */
+export const SCALES_KEY = "__scales";
+
+/** Read calibrated px/ft per page index from the answers jsonb. */
+export function parseScales(answers: Record<string, string> | null): Record<number, number> {
+  try {
+    const raw = answers?.[SCALES_KEY];
+    return raw ? (JSON.parse(raw) as Record<number, number>) : {};
+  } catch {
+    return {};
+  }
+}

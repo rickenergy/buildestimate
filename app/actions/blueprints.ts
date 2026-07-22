@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { methodFor } from "@/lib/takeoff-methods";
 import { computeEstimate, saveEstimate } from "@/app/actions/estimates";
 import type { AreaInput, TakeoffInput } from "@/lib/takeoff/types";
+import { parseScales, SCALES_KEY } from "@/lib/takeoff/scale";
 
 const LANG_NAMES: Record<string, string> = {
   en: "English",
@@ -69,18 +70,6 @@ export interface TradeScope {
 // Reserved keys stored inside the `answers` jsonb (avoids a schema migration).
 const BUILDER_REQUEST_KEY = "__builder_request";
 const ESTIMATE_ID_KEY = "__estimate_id";
-// px-per-foot per page, from the GC's scale calibration. JSON: { [pageIndex]: pxPerFt }
-const SCALES_KEY = "__scales";
-
-/** Read calibrated px/ft per page index from the answers jsonb. */
-export function parseScales(answers: Record<string, string> | null): Record<number, number> {
-  try {
-    const raw = answers?.[SCALES_KEY];
-    return raw ? (JSON.parse(raw) as Record<number, number>) : {};
-  } catch {
-    return {};
-  }
-}
 
 export interface BlueprintRow {
   id: string;
