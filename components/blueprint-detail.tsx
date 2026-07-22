@@ -7,9 +7,9 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/components/providers";
 import { VoiceInput } from "@/components/voice-input";
+import { BuilderRequestCard } from "@/components/builder-request-card";
 import {
   analyzeBlueprintPage,
   saveBlueprintAnswers,
@@ -17,7 +17,6 @@ import {
   mapPlanTrades,
   buildTradeScope,
   selectTradeWorks,
-  saveBuilderRequest,
   quantifyTrade,
   saveWorkQuantities,
   estimateFromBlueprint,
@@ -37,7 +36,6 @@ import {
   ClipboardList,
   Ruler as RulerIcon,
   Calculator,
-  FileText,
   Receipt,
 } from "lucide-react";
 
@@ -183,7 +181,6 @@ export function BlueprintDetail({
     ? new Set(blueprint.trade_scopes?.[blueprint.chosen_trade]?.selected ?? [])
     : new Set<string>();
   const [pickedWorks, setPickedWorks] = useState<Set<string>>(initialSel);
-  const [builderReq, setBuilderReq] = useState<string>((blueprint.answers ?? {})[BUILDER_REQUEST_KEY] ?? "");
   const [quantifying, setQuantifying] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [qtyEdits, setQtyEdits] = useState<Record<string, WorkQuantity>>(
@@ -239,13 +236,6 @@ export function BlueprintDetail({
     });
   }
 
-  function saveBuilderReq() {
-    startTransition(async () => {
-      await saveBuilderRequest(blueprint.id, builderReq.trim());
-      router.refresh();
-      toast.success("✓");
-    });
-  }
   function runQuantify() {
     if (!blueprint.chosen_trade) return;
     setQuantifying(true);
@@ -320,29 +310,12 @@ export function BlueprintDetail({
       <h1 className="text-xl font-bold">{blueprint.name}</h1>
       <p className="-mt-2 text-sm text-muted-foreground">{tr(L.intro)}</p>
 
-      {/* Builder's request — fed into scope + quantities */}
-      <Card>
-        <CardContent className="grid gap-2 p-4">
-          <p className="flex items-center gap-2 text-sm font-semibold">
-            <FileText className="h-4 w-4 text-primary" /> {tr(L.brTitle)}
-          </p>
-          <p className="text-xs text-muted-foreground">{tr(L.brHint)}</p>
-          <div className="flex items-start gap-1.5">
-            <Textarea
-              value={builderReq}
-              onChange={(e) => setBuilderReq(e.target.value)}
-              placeholder={tr(L.brPlaceholder)}
-              className="min-h-20"
-            />
-            <VoiceInput onTranscript={(text) => setBuilderReq((s) => (s.trim() ? `${s.trim()} ` : "") + text)} />
-          </div>
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" disabled={pending} onClick={saveBuilderReq}>
-              {tr(L.brSave)}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Builder's request — fed into scope + quantities. Isolated component so
+          typing stays in local state (was a ~375ms INP on the big tree). */}
+      <BuilderRequestCard
+        blueprintId={blueprint.id}
+        initialValue={(blueprint.answers ?? {})[BUILDER_REQUEST_KEY] ?? ""}
+      />
 
       {/* ── Phase 2: whole-plan trade map → pick trade → scope ── */}
       {/* Step 1: map trades */}
