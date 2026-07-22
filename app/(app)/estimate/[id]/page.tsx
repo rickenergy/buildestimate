@@ -17,6 +17,7 @@ import { SafetyChecklistCard } from "@/components/safety-checklist-card";
 import { AiScopeQuestions } from "@/components/ai-scope-questions";
 import { BillingCard } from "@/components/billing-card";
 import { JobPhotosCard } from "@/components/job-photos-card";
+import { MaterialsCard } from "@/components/materials-card";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
@@ -143,6 +144,7 @@ export default async function EstimatePage({
           invoices={(invoices ?? []) as Invoice[]}
           changeOrders={(changeOrders ?? []) as ChangeOrder[]}
         />
+        <MaterialsCard items={(items ?? []) as EstimateItem[]} />
         <JobCostCard
           estimateId={id}
           contractTotal={Number(estimate.total)}
