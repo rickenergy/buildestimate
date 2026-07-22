@@ -328,7 +328,11 @@ export async function buildTradeScope(id: string, trade: string): Promise<{ ok: 
 
   // Prefer the sheets the trade map flagged for this trade; else first sheets.
   const wanted = new Set(map.find((m) => m.key === trade)?.sheets ?? []);
-  const relevant = (wanted.size ? pages.filter((p) => wanted.has(p.i)) : pages).slice(0, 6);
+  // trade_map sheets are the drawing's own numbers (e.g. 101), not page indices;
+  // if they don't intersect the actual pages, fall back to all pages so the AI
+  // always SEES the plan (else it quantifies blind).
+  const matched = pages.filter((p) => wanted.has(p.i));
+  const relevant = (matched.length ? matched : pages).slice(0, 6);
   const images = (
     await Promise.all(
       relevant.map(async (p) => {
@@ -460,7 +464,11 @@ export async function quantifyTrade(id: string, trade: string): Promise<{ ok: bo
   const lang = (profile?.language as string) ?? "en";
 
   const wanted = new Set(map.find((m) => m.key === trade)?.sheets ?? []);
-  const relevant = (wanted.size ? pages.filter((p) => wanted.has(p.i)) : pages).slice(0, 6);
+  // trade_map sheets are the drawing's own numbers (e.g. 101), not page indices;
+  // if they don't intersect the actual pages, fall back to all pages so the AI
+  // always SEES the plan (else it quantifies blind).
+  const matched = pages.filter((p) => wanted.has(p.i));
+  const relevant = (matched.length ? matched : pages).slice(0, 6);
   const images = (
     await Promise.all(
       relevant.map(async (p) => {
