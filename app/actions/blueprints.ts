@@ -69,6 +69,18 @@ export interface TradeScope {
 // Reserved keys stored inside the `answers` jsonb (avoids a schema migration).
 const BUILDER_REQUEST_KEY = "__builder_request";
 const ESTIMATE_ID_KEY = "__estimate_id";
+// px-per-foot per page, from the GC's scale calibration. JSON: { [pageIndex]: pxPerFt }
+const SCALES_KEY = "__scales";
+
+/** Read calibrated px/ft per page index from the answers jsonb. */
+export function parseScales(answers: Record<string, string> | null): Record<number, number> {
+  try {
+    const raw = answers?.[SCALES_KEY];
+    return raw ? (JSON.parse(raw) as Record<number, number>) : {};
+  } catch {
+    return {};
+  }
+}
 
 export interface BlueprintRow {
   id: string;
@@ -487,6 +499,13 @@ export async function quantifyTrade(id: string, trade: string): Promise<{ ok: bo
     .map((w) => `- id:${w.id} | ${w.label}${w.sheet != null ? ` (sheet ${w.sheet})` : ""} | measure: ${w.measures.join(", ")}`)
     .join("\n");
 
+  const scales = parseScales(answers);
+  const scaleNote = Object.keys(scales).length
+    ? `\n\nThese page indices are calibrated to a known scale (px/ft): ${Object.entries(scales)
+        .map(([p, v]) => `page ${p}=${Math.round(v as number)}`)
+        .join(", ")}. For an item whose room/element has NO printed dimension, do NOT guess a number — return your lowest-confidence estimate and set assumptions to "GC to trace with calibrated scale".`
+    : "";
+
   try {
     const { output } = await generateText({
       model: "anthropic/claude-sonnet-5",
@@ -503,7 +522,7 @@ ${method ? `Book method for ${trade}: ${method.measures.map((m) => `${m.what.en}
 
 Selected works to quantify (return one entry per id, same unit as its measure):
 ${worksText}
-${builderRequest ? `\nBuilder's request (make the quantities satisfy EXACTLY this):\n"""${builderRequest}"""` : ""}${answersText ? `\n\nContractor's answers to earlier questions (use them): ${answersText}` : ""}
+${builderRequest ? `\nBuilder's request (make the quantities satisfy EXACTLY this):\n"""${builderRequest}"""` : ""}${answersText ? `\n\nContractor's answers to earlier questions (use them): ${answersText}` : ""}${scaleNote}
 
 Write basis/assumptions/scale_note in ${LANG_NAMES[lang] ?? "English"}. Return raw quantities WITHOUT waste (the deterministic pricing engine applies waste per trade).`,
             },
@@ -553,6 +572,24 @@ export async function saveBlueprintAnswers(id: string, answers: Record<string, s
   const merged = { ...((bp?.answers as Record<string, unknown>) ?? {}), ...answers };
   await supabase.from("blueprints").update({ answers: merged }).eq("id", id).eq("user_id", user.id);
   revalidatePath(`/blueprints/${id}`);
+}
+
+/**
+ * Save the GC's scale calibration for one page (px-per-foot from a drawn
+ * reference line of known length). pxPerFt ≤ 0 clears the page's calibration.
+ * Stored in the answers jsonb under __scales to avoid a schema migration.
+ */
+export async function savePageScale(id: string, pageIndex: number, pxPerFt: number) {
+  const { supabase, user } = await requireUser();
+  const { data: bp } = await supabase.from("blueprints").select("answers").eq("id", id).eq("user_id", user.id).single();
+  const answers = (bp?.answers as Record<string, string> | null) ?? {};
+  const scales = parseScales(answers);
+  if (pxPerFt > 0) scales[pageIndex] = pxPerFt;
+  else delete scales[pageIndex];
+  answers[SCALES_KEY] = JSON.stringify(scales);
+  await supabase.from("blueprints").update({ answers }).eq("id", id).eq("user_id", user.id);
+  revalidatePath(`/blueprints/${id}`);
+  return { ok: true };
 }
 
 /**
