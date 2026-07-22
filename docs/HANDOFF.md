@@ -15,8 +15,16 @@
 6. VAPID (`npx web-push generate-vapid-keys` → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
 7. ✅ **JÁ FEITO pelo dono:** Confirm Email OFF · SMTP Resend (funciona, testado 200).
 
+### ✅ Blueprint Fase 3 — FEITO (2026-07-21): takeoff → orçamento end-to-end
+Fluxo completo agora: upload planta → mapear trades → escolher trade → escopo de works → selecionar → **campo "Solicitação do builder"** (IA lê e faz exatamente o pedido) → **Rodar takeoff** (IA lê cotas/tags/schedule → quantidade por work c/ `basis`+`confidence`, GC edita cada número) → **Gerar orçamento profissional** → cai no motor determinístico existente (`computeEstimate`→`saveEstimate`: catálogo + perda + mão de obra + crew + fator de localização + overhead/lucro/imposto) → abre `/estimate/[id]` (com `/proposal` e `/print` prontos).
+- Novas actions em `app/actions/blueprints.ts`: `saveBuilderRequest`, `quantifyTrade`, `saveWorkQuantities`, `estimateFromBlueprint`. UI em `components/blueprint-detail.tsx`.
+- **Dívida técnica (migrar depois):** pra não travar no MCP Supabase fora do ar, `builder_request` e `estimate_id` estão dentro do jsonb `blueprints.answers` (chaves `__builder_request`/`__estimate_id`); quantidades em `trade_scopes[trade].quantities`. Quando MCP voltar: criar colunas reais `builder_request text` + `estimate_id uuid references estimates(id)` e migrar (`app/actions/blueprints.ts` centraliza as chaves em consts).
+- **Refino futuro (Fase 4):** calibração de escala por canvas (GC marca 1 medida conhecida → px→ft) pra subir precisão além do "ler cotas impressas"; feedback loop de correções do GC.
+
+### 🟣 Módulo VIP — BID / Licitação (pedido do dono, futuro)
+Módulo premium pra ganhar trabalhos maiores via **BID por licitação**. Objetivo: pegar um pacote de licitação (specs + plantas + bid form) → IA monta a proposta competitiva completa. Escopo a definir: importar bid docs, takeoff multi-trade do set inteiro, bid form/schedule of values, bid bond/insurance reqs, addenda, prazo, markup competitivo p/ ganhar mantendo margem, geração do pacote de submissão. Gate por plano (tier VIP). Reusa o motor de takeoff + estimate já pronto.
+
 ### 🟡 Código pendente (retomar aqui)
-- **Blueprint Fase 3** (próximo): calibração de escala (GC marca 1 medida conhecida na imagem → fator px→ft) → medir áreas dos works selecionados → quantidades reais → vira estimate via motor determinístico (`lib/takeoff` + `calculate_estimate`). Base pronta: `lib/takeoff-methods.ts` (o que medir por trade), `blueprints.trade_scopes[trade].selected` (works escolhidos), `answers`.
 - **Push em eventos**: `notifyUser` existe mas nada dispara. Ligar em contrato assinado (RPC `sign_sub_contract`) e share respondido → precisa **Supabase DB Webhook → Edge Function → notifyUser** + VAPID.
 - **PDF grande**: cap de 40 folhas; falta UX de "2º upload" pro resto.
 - **RLS fino de custo/margem** quando Sales/Estimator ganharem acesso a estimates (hoje estimates = só dono).
