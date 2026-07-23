@@ -18,6 +18,8 @@ import { AiScopeQuestions } from "@/components/ai-scope-questions";
 import { BillingCard } from "@/components/billing-card";
 import { JobPhotosCard } from "@/components/job-photos-card";
 import { MaterialsCard } from "@/components/materials-card";
+import { FieldMaterialsCard } from "@/components/field-materials-card";
+import type { MaterialProgress } from "@/app/actions/estimates";
 import { signPhotos, type JobPhoto } from "@/app/actions/photos";
 import type { JobTask } from "@/app/actions/tasks";
 import type { ChangeOrder, Invoice } from "@/app/actions/billing";
@@ -154,6 +156,13 @@ export default async function EstimatePage({
             taxPct: Number(estimate.tax_pct ?? 0),
             minMarginPct: Number(profile?.min_margin_pct ?? 15),
           }}
+        />
+        <FieldMaterialsCard
+          estimateId={id}
+          items={(items ?? []) as EstimateItem[]}
+          tracking={
+            ((estimate.project_meta as Record<string, unknown> | null)?.material_tracking as Record<string, MaterialProgress>) ?? {}
+          }
         />
         <JobCostCard
           estimateId={id}

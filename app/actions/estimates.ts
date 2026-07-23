@@ -329,6 +329,44 @@ export async function setEstimateMaterialsIncluded(estimateId: string, included:
   revalidatePath(`/estimate/${estimateId}`);
 }
 
+export interface MaterialProgress {
+  received: number;
+  installed: number;
+}
+
+/**
+ * Field material tracking — per job, per material line: how many units have
+ * ARRIVED on site and how many are INSTALLED. Stored in the estimate's
+ * project_meta jsonb under `material_tracking` (no schema migration), keyed by
+ * `${description}__${unit}` to match the aggregated shopping list. Units are the
+ * purchasable ones shown in the list (sheets / gallons / studs …).
+ */
+export async function saveMaterialProgress(estimateId: string, key: string, patch: Partial<MaterialProgress>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: est } = await supabase
+    .from("estimates")
+    .select("project_meta")
+    .eq("id", estimateId)
+    .eq("user_id", user.id)
+    .single();
+  const meta = (est?.project_meta as Record<string, unknown> | null) ?? {};
+  const tracking = ((meta.material_tracking as Record<string, MaterialProgress>) ?? {}) as Record<string, MaterialProgress>;
+  const cur = tracking[key] ?? { received: 0, installed: 0 };
+  tracking[key] = {
+    received: Math.max(0, patch.received ?? cur.received),
+    installed: Math.max(0, patch.installed ?? cur.installed),
+  };
+  meta.material_tracking = tracking;
+  await supabase.from("estimates").update({ project_meta: meta }).eq("id", estimateId).eq("user_id", user.id);
+  revalidatePath(`/estimate/${estimateId}`);
+  return { ok: true };
+}
+
 export async function updateEstimateItem(
   estimateId: string,
   itemId: string,
