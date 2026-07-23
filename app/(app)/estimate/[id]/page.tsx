@@ -144,7 +144,17 @@ export default async function EstimatePage({
           invoices={(invoices ?? []) as Invoice[]}
           changeOrders={(changeOrders ?? []) as ChangeOrder[]}
         />
-        <MaterialsCard items={(items ?? []) as EstimateItem[]} />
+        <MaterialsCard
+          items={(items ?? []) as EstimateItem[]}
+          mode={{
+            estimateId: id,
+            materialsIncluded: estimate.materials_included ?? true,
+            overheadPct: Number(estimate.overhead_pct ?? 10),
+            profitPct: Number(estimate.profit_pct ?? 20),
+            taxPct: Number(estimate.tax_pct ?? 0),
+            minMarginPct: Number(profile?.min_margin_pct ?? 15),
+          }}
+        />
         <JobCostCard
           estimateId={id}
           contractTotal={Number(estimate.total)}

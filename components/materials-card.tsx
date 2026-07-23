@@ -1,12 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Package, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLang } from "@/components/providers";
 import { formatMoney, formatNumber } from "@/lib/format";
 import { materialTakeoff, materialVsLabor } from "@/lib/takeoff/materials";
+import { computeTotals } from "@/lib/takeoff/margin";
+import { setEstimateMaterialsIncluded } from "@/app/actions/estimates";
 import type { EstimateItem } from "@/lib/types";
+
+export interface MaterialMode {
+  estimateId: string;
+  materialsIncluded: boolean;
+  overheadPct: number;
+  profitPct: number;
+  taxPct: number;
+  minMarginPct: number;
+}
 
 const L = {
   title: { en: "Materials — shopping list", pt: "Materiais — lista de compra", es: "Materiales — lista de compra" },
@@ -19,18 +31,45 @@ const L = {
   labor: { en: "Labor & other", pt: "Mão de obra & outros", es: "Mano de obra & otros" },
   buy: { en: "to buy", pt: "comprar", es: "comprar" },
   empty: { en: "No material lines in this estimate.", pt: "Sem linhas de material neste orçamento.", es: "Sin líneas de material en este presupuesto." },
+  priceMode: { en: "Client price", pt: "Preço ao cliente", es: "Precio al cliente" },
+  withMat: { en: "With material", pt: "Com material", es: "Con material" },
+  laborOnly: { en: "Labor only", pt: "Só mão de obra", es: "Solo mano de obra" },
+  modeHint: {
+    en: "Pick which price the client sees. Labor-only = client buys the material.",
+    pt: "Escolha o preço que o cliente vê. Só mão de obra = cliente compra o material.",
+    es: "Elija el precio que ve el cliente. Solo mano de obra = el cliente compra el material.",
+  },
 };
 
-export function MaterialsCard({ items }: { items: EstimateItem[] }) {
+export function MaterialsCard({ items, mode }: { items: EstimateItem[]; mode?: MaterialMode }) {
   const lang = useLang();
   const tr = (m: Record<string, string>) => m[lang] ?? m.en;
+  const router = useRouter();
   const [open, setOpen] = useState(true);
+  const [pending, startTransition] = useTransition();
 
-  const { list, split } = useMemo(() => {
+  const { list, split, coerced } = useMemo(() => {
     // Supabase returns numeric columns as strings — coerce before math.
     const coerced = items.map((i) => ({ ...i, qty: Number(i.qty), total: Number(i.total), unit_cost: Number(i.unit_cost) }));
-    return { list: materialTakeoff(coerced), split: materialVsLabor(coerced) };
+    return { list: materialTakeoff(coerced), split: materialVsLabor(coerced), coerced };
   }, [items]);
+
+  // Client-facing totals: full vs labor-only (material excluded), same margin math.
+  const totals = useMemo(() => {
+    if (!mode) return null;
+    const pct = [mode.overheadPct, mode.profitPct, mode.taxPct, mode.minMarginPct] as const;
+    const withMat = computeTotals(coerced, ...pct).total;
+    const laborOnly = computeTotals(coerced.filter((i) => i.kind !== "material"), ...pct).total;
+    return { withMat, laborOnly };
+  }, [coerced, mode]);
+
+  function setIncluded(included: boolean) {
+    if (!mode || included === mode.materialsIncluded) return;
+    startTransition(async () => {
+      await setEstimateMaterialsIncluded(mode.estimateId, included);
+      router.refresh();
+    });
+  }
 
   if (list.length === 0) {
     return (
@@ -70,6 +109,38 @@ export function MaterialsCard({ items }: { items: EstimateItem[] }) {
             <p className="font-semibold tabular-nums">{formatMoney(split.labor, lang)}</p>
           </div>
         </div>
+
+        {/* Client price mode — with material vs labor-only (single estimate only) */}
+        {mode && totals && (
+          <div className="grid gap-1.5">
+            <p className="text-xs font-medium">{tr(L.priceMode)}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { on: true, label: tr(L.withMat), value: totals.withMat },
+                  { on: false, label: tr(L.laborOnly), value: totals.laborOnly },
+                ] as const
+              ).map((opt) => {
+                const active = mode.materialsIncluded === opt.on;
+                return (
+                  <button
+                    key={String(opt.on)}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => setIncluded(opt.on)}
+                    className={`rounded-lg border px-3 py-2 text-left transition disabled:opacity-60 ${
+                      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted"
+                    }`}
+                  >
+                    <span className="block text-xs text-muted-foreground">{opt.label}</span>
+                    <span className="block font-semibold tabular-nums">{formatMoney(opt.value, lang)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{tr(L.modeHint)}</p>
+          </div>
+        )}
 
         {open && (
           <>

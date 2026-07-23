@@ -308,6 +308,27 @@ async function recalc(estimateId: string) {
   revalidatePath(`/estimate/${estimateId}`);
 }
 
+/**
+ * Toggle whether this estimate's price INCLUDES material or is labor-only
+ * (client supplies material). Stored on the estimate; the material line items
+ * stay so the GC keeps their shopping list either way. The client-facing
+ * labor-only figure is derived from the items at display time — we don't mutate
+ * the stored total here because recalc() rebuilds it from all items on any edit.
+ */
+export async function setEstimateMaterialsIncluded(estimateId: string, included: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  await supabase
+    .from("estimates")
+    .update({ materials_included: included })
+    .eq("id", estimateId)
+    .eq("user_id", user.id);
+  revalidatePath(`/estimate/${estimateId}`);
+}
+
 export async function updateEstimateItem(
   estimateId: string,
   itemId: string,
