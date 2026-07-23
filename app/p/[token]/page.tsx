@@ -27,6 +27,8 @@ interface ProposalData {
     title: string;
     trade: string;
     total: number;
+    client_total?: number; // labor-only-aware total (falls back to total pre-migration)
+    materials_included?: boolean;
     est_days: number | null;
     location: string | null;
     area_sqft: number | null;
@@ -92,7 +94,14 @@ export default async function PublicProposalPage({
     proposal.status !== "accepted";
   const accepted = proposal.status === "accepted";
   const company = contractor.company_name || contractor.full_name;
-  const total = Number(estimate.total);
+  // Labor-only proposals show the material-excluded price; client_total falls
+  // back to the full total until the get_proposal_by_token migration is applied.
+  const materialsIncluded = estimate.materials_included ?? true;
+  const total = Number(estimate.client_total ?? estimate.total);
+  const ownerSuppliesMaterial =
+    { en: "Materials supplied by owner — not included in this price.", pt: "Materiais por conta do cliente — não inclusos neste preço.", es: "Materiales por cuenta del cliente — no incluidos en este precio." }[
+      lang
+    ] ?? "Materials supplied by owner — not included in this price.";
 
   return (
     <main className="min-h-dvh bg-white text-neutral-900">
@@ -170,6 +179,9 @@ export default async function PublicProposalPage({
           <p className="mt-2 text-5xl font-bold tracking-tight sm:text-6xl">
             {formatMoney(total, lang)}
           </p>
+          {!materialsIncluded && (
+            <p className="mt-2 text-sm text-white/60">{ownerSuppliesMaterial}</p>
+          )}
           <div className="mt-6 grid grid-cols-3 gap-3 border-t border-white/15 pt-5 text-sm">
             {estimate.est_days != null && (
               <Fact
@@ -209,6 +221,8 @@ export default async function PublicProposalPage({
           <Block title={t.estimate.title}>
             <div className="space-y-6">
               {GROUPS.map(({ kinds, key }) => {
+                // Labor-only: don't list materials as part of the scope.
+                if (!materialsIncluded && key === "material") return null;
                 const rows = items.filter((i) => kinds.includes(i.kind));
                 if (rows.length === 0) return null;
                 return (

@@ -49,19 +49,29 @@ export function EstimatePrintView({ estimate, items, profile, licenses = [], ins
   const t = useDict();
   const lang = useLang();
 
+  // Labor-only proposal: exclude material from the client's price + line list.
+  const materialsIncluded = estimate.materials_included ?? true;
+  const ownerSuppliesMaterial =
+    { en: "Materials supplied by owner — not included in this price.", pt: "Materiais por conta do cliente — não inclusos neste preço.", es: "Materiales por cuenta del cliente — no incluidos en este precio." }[
+      lang
+    ] ?? "Materials supplied by owner — not included in this price.";
+
   const groups: { label: string; kinds: string[] }[] = [
-    { label: t.estimate.material, kinds: ["material"] },
+    ...(materialsIncluded ? [{ label: t.estimate.material, kinds: ["material"] }] : []),
     { label: t.estimate.labor, kinds: ["labor", "other"] },
     { label: t.estimate.demoDisposal, kinds: ["demo", "disposal"] },
   ];
 
   const subtotal =
-    Number(estimate.material_cost) + Number(estimate.labor_cost) + Number(estimate.demo_cost);
+    (materialsIncluded ? Number(estimate.material_cost) : 0) +
+    Number(estimate.labor_cost) +
+    Number(estimate.demo_cost);
   const overhead = subtotal * (Number(estimate.overhead_pct) / 100);
   const profit = (subtotal + overhead) * (Number(estimate.profit_pct) / 100);
   const preTax = subtotal + overhead + profit;
   const tax = preTax * (Number(estimate.tax_pct) / 100);
-  const total = Number(estimate.total);
+  // When labor-only, estimate.total (full) no longer applies — use the recomputed preTax+tax.
+  const total = materialsIncluded ? Number(estimate.total) : preTax + tax;
   const schedule = paymentPreset(estimate.payment_schedule_preset);
 
   const meta = (estimate.project_meta ?? {}) as {
@@ -215,6 +225,9 @@ export function EstimatePrintView({ estimate, items, profile, licenses = [], ins
           <span>{t.estimate.total}</span>
           <span>{formatMoney(total, lang)}</span>
         </div>
+        {!materialsIncluded && (
+          <p className="mt-1 text-xs italic text-neutral-500">{ownerSuppliesMaterial}</p>
+        )}
       </section>
 
       {/* payment plan */}

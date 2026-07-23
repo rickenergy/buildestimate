@@ -117,7 +117,9 @@ export async function generateProposalText(estimateId: string) {
 
   const demoLines = lines(["demo", "disposal"]);
   const workLines = lines(["labor", "other"]);
-  const materialLines = lines(["material"]);
+  // Labor-only proposal: don't advertise materials as included.
+  const materialsIncluded = estimate.materials_included ?? true;
+  const materialLines = materialsIncluded ? lines(["material"]) : "";
 
   const scope = [
     copy.scopeIntro(estimate.title, String(estimate.area_sqft ?? "—")),
