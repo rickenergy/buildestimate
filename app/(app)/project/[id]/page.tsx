@@ -8,8 +8,9 @@ import { PageHeader } from "@/components/page-header";
 import { formatMoney } from "@/lib/format";
 import { Home, Building2, Layers, Plus, MapPin, FileText, Pencil } from "lucide-react";
 import { ProjectTeamCard } from "@/components/project-team-card";
+import { MaterialsCard } from "@/components/materials-card";
 import type { Assignment } from "@/app/actions/assignments";
-import type { Project, Estimate, Employee } from "@/lib/types";
+import type { Project, Estimate, Employee, EstimateItem } from "@/lib/types";
 
 const TYPE_ICON = { residential: Home, commercial: Building2, mixed: Layers } as const;
 
@@ -70,6 +71,14 @@ export default async function ProjectPage({
 
   const p = project as Project & { clients: { name: string } | null };
   const list = (jobs ?? []) as Estimate[];
+
+  // Consolidated project material takeoff — every job's material lines merged
+  // into one shopping list ("all the material this project needs").
+  const jobIds = list.map((j) => j.id);
+  const { data: projectItems } = jobIds.length
+    ? await supabase.from("estimate_items").select("*").in("estimate_id", jobIds)
+    : { data: [] };
+
   const Icon = TYPE_ICON[p.project_type];
   const contractTotal = list.reduce((sum, j) => sum + (Number(j.total) || 0), 0);
 
@@ -156,6 +165,8 @@ export default async function ProjectPage({
           )}
         </CardContent>
       </Card>
+
+      {jobIds.length > 0 && <MaterialsCard items={(projectItems ?? []) as EstimateItem[]} />}
 
       <ProjectTeamCard
         projectId={id}
