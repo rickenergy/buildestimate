@@ -6,10 +6,10 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useLang } from "@/components/providers";
 import { VoiceInput } from "@/components/voice-input";
 import { BuilderRequestCard } from "@/components/builder-request-card";
+import { CommittedInput } from "@/components/committed-input";
 import {
   analyzeBlueprintPage,
   saveBlueprintAnswers,
@@ -443,9 +443,9 @@ export function BlueprintDetail({
                         <p className="text-sm font-medium">{qq.q}</p>
                         <p className="text-xs text-muted-foreground">💡 {qq.why}</p>
                         <div className="flex items-center gap-1.5">
-                          <Input
+                          <CommittedInput
                             value={answers[qq.id] ?? ""}
-                            onChange={(e) => setAnswers((s) => ({ ...s, [qq.id]: e.target.value }))}
+                            onCommit={(v) => setAnswers((s) => ({ ...s, [qq.id]: v }))}
                             placeholder={tr(L.answer)}
                             className="h-9"
                           />
@@ -519,11 +519,11 @@ export function BlueprintDetail({
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Input
+                        <CommittedInput
                           type="number"
                           inputMode="decimal"
                           value={q.qty}
-                          onChange={(e) => editQty(w.id, { qty: Number(e.target.value) })}
+                          onCommit={(v) => editQty(w.id, { qty: Number(v) })}
                           className="h-9 w-28"
                         />
                         <select
@@ -709,9 +709,9 @@ export function BlueprintDetail({
                         <p className="text-sm font-medium">{qq.q}</p>
                         <p className="text-xs text-muted-foreground">💡 {qq.why}</p>
                         <div className="flex items-center gap-1.5">
-                          <Input
+                          <CommittedInput
                             value={answers[qq.id] ?? ""}
-                            onChange={(e) => setAnswers((s) => ({ ...s, [qq.id]: e.target.value }))}
+                            onCommit={(v) => setAnswers((s) => ({ ...s, [qq.id]: v }))}
                             placeholder={tr(L.answer)}
                             className="h-9"
                           />
